@@ -30,5 +30,5 @@ EXPOSE 5000
 ENV NODE_ENV=production
 ENV PORT=5000
 
-# Start Application Server
-CMD ["node", "server.js"]
+# Initialize Database Schema/Seed then Start Production Server
+CMD ["sh", "-c", "node src/seed/seed.js || true; node server.js"]
