@@ -8,11 +8,13 @@ class HRProvider with ChangeNotifier {
   bool _isLoadingAction = false;
   bool _isLoadingUsers = false;
   bool _isLoadingProjectTeams = false;
+  bool _isLoadingCycles = false;
 
   String? _errorDashboard;
   String? _errorAction;
   String? _errorUsers;
   String? _errorProjectTeams;
+  String? _errorCycles;
 
   Map<String, dynamic>? _cycle;
   Map<String, dynamic>? _metrics;
@@ -27,11 +29,13 @@ class HRProvider with ChangeNotifier {
   bool get isLoadingAction => _isLoadingAction;
   bool get isLoadingUsers => _isLoadingUsers;
   bool get isLoadingProjectTeams => _isLoadingProjectTeams;
+  bool get isLoadingCycles => _isLoadingCycles;
 
   String? get errorDashboard => _errorDashboard;
   String? get errorAction => _errorAction;
   String? get errorUsers => _errorUsers;
   String? get errorProjectTeams => _errorProjectTeams;
+  String? get errorCycles => _errorCycles;
 
   Map<String, dynamic>? get cycle => _cycle;
   Map<String, dynamic>? get metrics => _metrics;
@@ -353,15 +357,25 @@ class HRProvider with ChangeNotifier {
     }
   }
 
-  /// Fetch All Evaluation Cycles
+  /// Fetch All Evaluation Cycles (Open to all authenticated roles)
   Future<void> fetchCycles() async {
+    _isLoadingCycles = true;
+    _errorCycles = null;
+    notifyListeners();
+
     try {
       final response = await _apiClient.get('/hr/cycles');
       if (response.statusCode == 200 && response.data['success'] == true) {
         _cyclesList = response.data['data'] ?? [];
-        notifyListeners();
+      } else {
+        _errorCycles = response.data['message'] ?? 'Failed to load evaluation cycles.';
       }
-    } catch (_) {}
+    } catch (e) {
+      _errorCycles = e.toString().replaceAll('Exception:', '').trim();
+    } finally {
+      _isLoadingCycles = false;
+      notifyListeners();
+    }
   }
 
   /// Create New Review Cycle (HR Date-Wise Feature)

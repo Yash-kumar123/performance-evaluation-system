@@ -12,6 +12,9 @@ router.use(authenticateJWT, authorizeRoles('MANAGER'));
 // GET /api/managers/reports
 router.get('/reports', ManagerController.getDirectReports);
 
+// POST /api/managers/team-member (Manager can add/register a new team member directly)
+router.post('/team-member', ManagerController.addTeamMember);
+
 // GET /api/managers/team-status
 router.get('/team-status', ManagerController.getTeamStatus);
 

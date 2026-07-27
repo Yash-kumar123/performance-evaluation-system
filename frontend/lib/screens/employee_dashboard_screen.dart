@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/auth_provider.dart';
 import '../core/providers/employee_provider.dart';
@@ -222,6 +221,36 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
               ),
               const SizedBox(height: 24),
 
+              // Quick Action Navigation Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.go('/cycles'),
+                      icon: const Icon(Icons.calendar_month_rounded, size: 18),
+                      label: const Text('Review Cycles'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.go('/history'),
+                      icon: const Icon(Icons.history_rounded, size: 18),
+                      label: const Text('History'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.go('/profile'),
+                      icon: const Icon(Icons.person_outline_rounded, size: 18),
+                      label: const Text('Profile'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 28),
+
               // Current Monthly Evaluation Card
               Text(
                 'Evaluation Feedback & Scores',
@@ -268,9 +297,9 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
 
               const SizedBox(height: 28),
 
-              // Visual Performance Graph Section (fl_chart)
+              // Parameter Score Trends Section (Clean Cards)
               Text(
-                'Performance Growth Trend Chart',
+                'Parameter Ratings Evolution',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
@@ -289,11 +318,8 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                     ),
                   ),
                 )
-              else ...[
-                _buildVisualPerformanceGraph(empProvider.scoreTrends),
-                const SizedBox(height: 20),
+              else
                 _buildScoreTrendsList(empProvider.scoreTrends),
-              ],
             ],
           ),
         ),
@@ -475,138 +501,6 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                 onPressed: () => context.go('/evaluation/$evalId'),
                 icon: const Icon(Icons.visibility_rounded, size: 18),
                 label: const Text('View Official Score Sheet'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Visual Performance Line/Bar Chart (fl_chart)
-  Widget _buildVisualPerformanceGraph(List<dynamic> trends) {
-    // Extract unique cycle codes (e.g. 2026-05, 2026-06, 2026-07)
-    final Set<String> cycleCodesSet = {};
-    for (var p in trends) {
-      final history = (p['history'] as List<dynamic>?) ?? [];
-      for (var h in history) {
-        if (h['cycleCode'] != null) cycleCodesSet.add(h['cycleCode'] as String);
-      }
-    }
-    final cycleCodes = cycleCodesSet.toList()..sort();
-
-    if (cycleCodes.isEmpty) return const SizedBox.shrink();
-
-    // Compute average score per cycle code
-    final Map<String, double> cycleAvgScores = {};
-    for (var code in cycleCodes) {
-      int totalScore = 0;
-      int count = 0;
-      for (var p in trends) {
-        final history = (p['history'] as List<dynamic>?) ?? [];
-        for (var h in history) {
-          if (h['cycleCode'] == code) {
-            totalScore += (h['score'] as int?) ?? 0;
-            count++;
-          }
-        }
-      }
-      cycleAvgScores[code] = count > 0 ? (totalScore / count) : 0.0;
-    }
-
-    final spots = <FlSpot>[];
-    for (int i = 0; i < cycleCodes.length; i++) {
-      final code = cycleCodes[i];
-      final avg = cycleAvgScores[code] ?? 0.0;
-      spots.add(FlSpot(i.toDouble(), avg));
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                Icon(Icons.show_chart_rounded, color: AppTheme.primaryColor, size: 22),
-                SizedBox(width: 8),
-                Text(
-                  'Average Score Growth Progression',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              'Tracks overall score progression across monthly review cycles (May, June, July).',
-              style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              height: 180,
-              child: LineChart(
-                LineChartData(
-                  minY: 1,
-                  maxY: 5,
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    getDrawingHorizontalLine: (val) => FlLine(color: AppTheme.borderSubtleColor, strokeWidth: 1),
-                  ),
-                  titlesData: FlTitlesData(
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        interval: 1,
-                        getTitlesWidget: (val, meta) => Text('${val.toInt()}★', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor)),
-                      ),
-                    ),
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (val, meta) {
-                          final idx = val.toInt();
-                          if (idx >= 0 && idx < cycleCodes.length) {
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 6.0),
-                              child: Text(
-                                cycleCodes[idx],
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryColor),
-                              ),
-                            );
-                          }
-                          return const Text('');
-                        },
-                      ),
-                    ),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: true,
-                      color: AppTheme.primaryColor,
-                      barWidth: 3.5,
-                      isStrokeCapRound: true,
-                      dotData: FlDotData(
-                        show: true,
-                        getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                          radius: 5,
-                          color: AppTheme.primaryColor,
-                          strokeWidth: 2,
-                          strokeColor: Colors.white,
-                        ),
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: AppTheme.primaryColor.withOpacity(0.12),
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],

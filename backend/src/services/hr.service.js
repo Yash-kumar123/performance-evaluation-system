@@ -64,19 +64,20 @@ class HRService {
   }
 
   /**
-   * Create new evaluation review cycle (Date Wise HR Feature with upsert)
+   * Create new evaluation review cycle (Date Wise HR Feature with automatic cycleCode generation)
    */
   static async createCycle(companyId, payload) {
     const { name, cycleCode, startDate, endDate, isActive = true } = payload;
+    const code = cycleCode || (startDate ? startDate.substring(0, 7) : `${new Date().getFullYear()}-${(new Date().getMonth() + 1).toString().padLeft(2, '0')}`);
 
-    if (!name || !cycleCode || !startDate || !endDate) {
-      throw new AppError('Name, cycleCode (YYYY-MM), startDate, and endDate are required.', 400);
+    if (!name || !startDate || !endDate) {
+      throw new AppError('Name, startDate, and endDate are required.', 400);
     }
 
     return await EvaluationRepository.createCycle({
       companyId,
       name,
-      cycleCode,
+      cycleCode: code,
       startDate,
       endDate,
       isActive

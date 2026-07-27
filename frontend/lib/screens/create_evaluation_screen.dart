@@ -130,6 +130,14 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
       appBar: CustomAppBar(
         title: 'Evaluate ${widget.employeeName}',
         showDrawerButton: false,
+        showBackButton: true,
+        onBackPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/manager/team');
+          }
+        },
       ),
       backgroundColor: AppTheme.backgroundColor,
       body: SingleChildScrollView(

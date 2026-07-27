@@ -6,8 +6,10 @@ class ManagerProvider with ChangeNotifier {
 
   bool _isLoadingTeam = false;
   bool _isLoadingSubmitting = false;
+  bool _isLoadingAddMember = false;
   String? _errorTeam;
   String? _errorSubmitting;
+  String? _errorAddMember;
 
   Map<String, dynamic>? _activeCycle;
   List<dynamic> _teamStatus = [];
@@ -15,8 +17,10 @@ class ManagerProvider with ChangeNotifier {
 
   bool get isLoadingTeam => _isLoadingTeam;
   bool get isLoadingSubmitting => _isLoadingSubmitting;
+  bool get isLoadingAddMember => _isLoadingAddMember;
   String? get errorTeam => _errorTeam;
   String? get errorSubmitting => _errorSubmitting;
+  String? get errorAddMember => _errorAddMember;
 
   Map<String, dynamic>? get activeCycle => _activeCycle;
   List<dynamic> get teamStatus => _teamStatus;
@@ -60,6 +64,47 @@ class ManagerProvider with ChangeNotifier {
         notifyListeners();
       }
     } catch (_) {}
+  }
+
+  /// Add / Register New Team Member under this Manager
+  Future<bool> addTeamMember({
+    required String fullName,
+    required String email,
+    required String password,
+    String? jobTitle,
+    String? department,
+  }) async {
+    _isLoadingAddMember = true;
+    _errorAddMember = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.post('/managers/team-member', data: {
+        'fullName': fullName,
+        'email': email,
+        'password': password,
+        'jobTitle': jobTitle ?? 'Team Member',
+        'department': department ?? 'General',
+      });
+
+      if (response.statusCode == 201 && response.data['success'] == true) {
+        await fetchTeamStatus();
+        await fetchDirectReports();
+        _isLoadingAddMember = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorAddMember = response.data['message'] ?? 'Failed to add team member.';
+        _isLoadingAddMember = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorAddMember = e.toString().replaceAll('Exception:', '').trim();
+      _isLoadingAddMember = false;
+      notifyListeners();
+      return false;
+    }
   }
 
   /// Submit or Save Draft Evaluation

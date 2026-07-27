@@ -38,6 +38,117 @@ class _TeamScreenState extends State<TeamScreen> {
     super.dispose();
   }
 
+  void _showRegisterMemberDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController(text: 'Password123!');
+    final titleController = TextEditingController(text: 'Team Member');
+    final deptController = TextEditingController(text: 'Operations');
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.person_add_rounded, color: AppTheme.primaryColor),
+            SizedBox(width: 8),
+            Text('Register New Team Member'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Add a new employee to your direct reporting roster.',
+                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryColor),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Full Name',
+                    hintText: 'e.g. Karan Verma',
+                  ),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address',
+                    hintText: 'e.g. karan@company.com',
+                  ),
+                  validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Initial Password',
+                  ),
+                  validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Job Title',
+                    hintText: 'e.g. Senior Analyst',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: deptController,
+                  decoration: const InputDecoration(
+                    labelText: 'Department',
+                    hintText: 'e.g. Engineering',
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (!formKey.currentState!.validate()) return;
+              final mgrProvider = Provider.of<ManagerProvider>(context, listen: false);
+              final success = await mgrProvider.addTeamMember(
+                fullName: nameController.text.trim(),
+                email: emailController.text.trim(),
+                password: passwordController.text.trim(),
+                jobTitle: titleController.text.trim(),
+                department: deptController.text.trim(),
+              );
+              if (!ctx.mounted) return;
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    success ? 'Team member registered successfully!' : (mgrProvider.errorAddMember ?? 'Registration failed.'),
+                  ),
+                  backgroundColor: success ? AppTheme.successColor : AppTheme.errorColor,
+                ),
+              );
+            },
+            child: const Text('Register Member'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'SUBMITTED':
@@ -83,28 +194,40 @@ class _TeamScreenState extends State<TeamScreen> {
       backgroundColor: AppTheme.backgroundColor,
       body: Column(
         children: [
-          // Search & Filter Bar Container
+          // Search & Action Header Container
           Container(
             padding: const EdgeInsets.all(16.0),
             color: Colors.white,
             child: Column(
               children: [
-                TextField(
-                  controller: _searchController,
-                  onChanged: (_) => setState(() {}),
-                  decoration: InputDecoration(
-                    hintText: 'Search direct reports by name or title...',
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() {});
-                            },
-                          )
-                        : null,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'Search direct reports...',
+                          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() {});
+                                  },
+                                )
+                              : null,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () => _showRegisterMemberDialog(context),
+                      icon: const Icon(Icons.person_add_rounded, size: 18),
+                      label: const Text('Add Member'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Row(

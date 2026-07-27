@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../core/config/app_theme.dart';
+import '../core/providers/auth_provider.dart';
 import '../core/providers/employee_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/loading_widget.dart';
@@ -37,7 +38,9 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<AuthProvider>(context).user;
     final empProvider = Provider.of<EmployeeProvider>(context);
+    final isManagerOrHR = user?.role == 'MANAGER' || user?.role == 'HR';
 
     return Scaffold(
       appBar: const CustomAppBar(
@@ -153,10 +156,10 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Employee Growth Progression Graph Section
-                if (empProvider.scoreTrends.isNotEmpty) ...[
+                // Employee Growth Progression Graph Section (ONLY FOR MANAGER & HR)
+                if (isManagerOrHR && empProvider.scoreTrends.isNotEmpty) ...[
                   Text(
-                    'Employee Growth & Improvement Graph',
+                    'Employee Growth & Assessment Graph',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
@@ -260,6 +263,7 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
     );
   }
 
+  /// Clean & Fixed Employee Growth Graph for Manager/HR
   Widget _buildEmployeeGrowthGraph(List<dynamic> trends) {
     final Set<String> cycleCodesSet = {};
     for (var p in trends) {
@@ -306,23 +310,25 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
                 Icon(Icons.trending_up_rounded, color: AppTheme.successColor, size: 22),
                 SizedBox(width: 8),
                 Text(
-                  'Historical Performance Improvement Trend',
+                  'Manager & HR Assessment Graph',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ],
             ),
             const SizedBox(height: 6),
             const Text(
-              'Assesses overall score growth across May, June, and July cycles.',
+              'Tracks employee score improvement across May, June, and July cycles.',
               style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
             ),
             const SizedBox(height: 24),
             SizedBox(
-              height: 180,
+              height: 200,
               child: LineChart(
                 LineChartData(
                   minY: 1,
                   maxY: 5,
+                  minX: 0,
+                  maxX: (cycleCodes.length - 1).toDouble() > 0 ? (cycleCodes.length - 1).toDouble() : 1,
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: false,
@@ -341,18 +347,19 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
                     bottomTitles: AxisTitles(
                       sideTitles: SideTitles(
                         showTitles: true,
+                        interval: 1.0, // Fixed: Ensures clean single step per cycle code
                         getTitlesWidget: (val, meta) {
-                          final idx = val.toInt();
-                          if (idx >= 0 && idx < cycleCodes.length) {
+                          final idx = val.round();
+                          if ((val - idx).abs() < 0.05 && idx >= 0 && idx < cycleCodes.length) {
                             return Padding(
-                              padding: const EdgeInsets.only(top: 6.0),
+                              padding: const EdgeInsets.only(top: 8.0),
                               child: Text(
                                 cycleCodes[idx],
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryColor),
                               ),
                             );
                           }
-                          return const Text('');
+                          return const SizedBox.shrink();
                         },
                       ),
                     ),
@@ -368,7 +375,7 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
                       dotData: FlDotData(
                         show: true,
                         getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
-                          radius: 5,
+                          radius: 6,
                           color: AppTheme.successColor,
                           strokeWidth: 2,
                           strokeColor: Colors.white,

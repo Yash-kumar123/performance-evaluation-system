@@ -12,6 +12,15 @@ class ManagerController {
     }
   }
 
+  static async addTeamMember(req, res, next) {
+    try {
+      const newMember = await ManagerService.addTeamMember(req.user.id, req.tenantId, req.body);
+      return sendSuccess(res, 201, 'Team member added successfully', newMember);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getTeamStatus(req, res, next) {
     try {
       const data = await ManagerService.getTeamStatus(req.user.id, req.tenantId);

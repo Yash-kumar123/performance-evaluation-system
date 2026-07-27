@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:fl_chart/fl_chart.dart';
 import '../core/config/app_theme.dart';
+import '../core/providers/auth_provider.dart';
 import '../core/providers/hr_provider.dart';
-import '../core/widgets/app_drawer.dart';
 import '../core/widgets/custom_app_bar.dart';
+import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
 
@@ -17,34 +17,56 @@ class HRDashboardScreen extends StatefulWidget {
 }
 
 class _HRDashboardScreenState extends State<HRDashboardScreen> {
+  String? _selectedFilterCycleId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final hrProvider = Provider.of<HRProvider>(context, listen: false);
-      hrProvider.fetchDashboard();
-      hrProvider.fetchCycles();
+      _loadData();
     });
   }
 
+  void _loadData() {
+    final hrProvider = Provider.of<HRProvider>(context, listen: false);
+    hrProvider.fetchDashboard(cycleId: _selectedFilterCycleId);
+    hrProvider.fetchCycles();
+    hrProvider.fetchUsers();
+  }
+
   void _showCreateCycleDialog(BuildContext context) {
-    final nameController = TextEditingController(text: 'August 2026 Evaluation');
-    final codeController = TextEditingController(text: '2026-08');
-    DateTime selectedStartDate = DateTime(2026, 8, 1);
-    DateTime selectedEndDate = DateTime(2026, 8, 31);
-    
-    final startDateController = TextEditingController(text: '2026-08-01');
-    final endDateController = TextEditingController(text: '2026-08-31');
+    final hrProvider = Provider.of<HRProvider>(context, listen: false);
+
+    final now = DateTime.now();
+    final nextMonth = DateTime(now.year, now.month + 1, 1);
+    final monthStr = nextMonth.month.toString().padLeft(2, '0');
+    final yearStr = nextMonth.year.toString();
+
+    final nameController = TextEditingController(text: 'Cycle Evaluation ($yearStr-$monthStr)');
+
+    DateTime selectedStartDate = nextMonth;
+    DateTime selectedEndDate = DateTime(nextMonth.year, nextMonth.month + 1, 0);
+
+    final startDateController = TextEditingController(
+      text: '$yearStr-$monthStr-01',
+    );
+    final endDateController = TextEditingController(
+      text: '$yearStr-$monthStr-${selectedEndDate.day.toString().padLeft(2, '0')}',
+    );
+
+    final formKey = GlobalKey<FormState>();
+
+    // Managers list from Users directory (role == MANAGER or compliance roster)
+    final managersRoster = hrProvider.usersList.where((u) => u['role'] == 'MANAGER').toList();
+    if (managersRoster.isEmpty && hrProvider.managers.isNotEmpty) {
+      managersRoster.addAll(hrProvider.managers);
+    }
 
     String selectedManagerId = 'ALL';
-    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (ctx) {
-        final hrProvider = Provider.of<HRProvider>(context, listen: false);
-        final managersList = hrProvider.managers;
-
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
@@ -68,7 +90,7 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Cycle Name
+                      // Cycle Name Input
                       TextFormField(
                         controller: nameController,
                         decoration: const InputDecoration(
@@ -77,11 +99,12 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                         ),
                         validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
-                      // Manager Scope Selection Dropdown
+                      // Manager Scope Dropdown with clean isExpanded layout
                       DropdownButtonFormField<String>(
                         value: selectedManagerId,
+                        isExpanded: true,
                         decoration: const InputDecoration(
                           labelText: 'Assigned Manager Scope',
                           prefixIcon: Icon(Icons.supervisor_account_rounded, size: 20),
@@ -89,16 +112,24 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                         items: [
                           const DropdownMenuItem<String>(
                             value: 'ALL',
-                            child: Text('All Managers (Company-Wide)', style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: Text(
+                              'All Managers (Company-Wide)',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                          ...managersList.map<DropdownMenuItem<String>>((m) {
-                            final mId = (m['manager_id'] as String?) ?? '';
-                            final mName = (m['manager_name'] as String?) ?? 'Manager';
+                          ...managersRoster.asMap().entries.map<DropdownMenuItem<String>>((entry) {
+                            final idx = entry.key;
+                            final m = entry.value;
+                            final mId = (m['id'] as String?) ?? (m['manager_id'] as String?) ?? 'mgr_$idx';
+                            final mName = (m['full_name'] as String?) ?? (m['manager_name'] as String?) ?? 'Manager';
                             final dept = (m['department'] as String?) ?? '';
-                            final val = mId.isNotEmpty ? mId : mName;
                             return DropdownMenuItem<String>(
-                              value: val,
-                              child: Text('$mName ($dept)'),
+                              value: mId,
+                              child: Text(
+                                dept.isNotEmpty ? '$mName ($dept)' : mName,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             );
                           }),
                         ],
@@ -110,18 +141,7 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                           }
                         },
                       ),
-                      const SizedBox(height: 12),
-
-                      // Cycle Code (YYYY-MM)
-                      TextFormField(
-                        controller: codeController,
-                        decoration: const InputDecoration(
-                          labelText: 'Cycle Code (YYYY-MM)',
-                          hintText: '2026-08',
-                        ),
-                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                      ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
                       // Start Date Picker Field
                       InkWell(
@@ -135,10 +155,9 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                           if (picked != null) {
                             setModalState(() {
                               selectedStartDate = picked;
-                              final monthStr = picked.month.toString().padLeft(2, '0');
-                              final dayStr = picked.day.toString().padLeft(2, '0');
-                              startDateController.text = '${picked.year}-$monthStr-$dayStr';
-                              codeController.text = '${picked.year}-$monthStr';
+                              final mStr = picked.month.toString().padLeft(2, '0');
+                              final dStr = picked.day.toString().padLeft(2, '0');
+                              startDateController.text = '${picked.year}-$mStr-$dStr';
                             });
                           }
                         },
@@ -153,7 +172,7 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 14),
 
                       // End Date / Deadline Picker Field
                       InkWell(
@@ -167,9 +186,9 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                           if (picked != null) {
                             setModalState(() {
                               selectedEndDate = picked;
-                              final monthStr = picked.month.toString().padLeft(2, '0');
-                              final dayStr = picked.day.toString().padLeft(2, '0');
-                              endDateController.text = '${picked.year}-$monthStr-$dayStr';
+                              final mStr = picked.month.toString().padLeft(2, '0');
+                              final dStr = picked.day.toString().padLeft(2, '0');
+                              endDateController.text = '${picked.year}-$mStr-$dStr';
                             });
                           }
                         },
@@ -197,9 +216,14 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                   onPressed: () async {
                     if (!formKey.currentState!.validate()) return;
                     final hrProv = Provider.of<HRProvider>(context, listen: false);
+
+                    // Derive cycle code automatically from start date
+                    final sDate = selectedStartDate;
+                    final derivedCode = '${sDate.year}-${sDate.month.toString().padLeft(2, '0')}';
+
                     final success = await hrProv.createCycle(
                       name: nameController.text.trim(),
-                      cycleCode: codeController.text.trim(),
+                      cycleCode: derivedCode,
                       startDate: startDateController.text.trim(),
                       endDate: endDateController.text.trim(),
                     );
@@ -248,202 +272,262 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
           final cycleName = hrProvider.cycle?['name'] ?? 'Active Cycle';
 
           return RefreshIndicator(
-            onRefresh: () => hrProvider.fetchDashboard(),
+            onRefresh: () async {
+              _loadData();
+            },
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Cycle Banner & Create Cycle Action
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryColor.withOpacity(0.1),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.admin_panel_settings_rounded, color: AppTheme.primaryColor, size: 28),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Company Compliance Oversight',
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Current Cycle: $cycleName',
-                                      style: const TextStyle(fontSize: 13, color: AppTheme.primaryColor, fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              ElevatedButton.icon(
-                                onPressed: () => _showCreateCycleDialog(context),
-                                icon: const Icon(Icons.add_task_rounded, size: 18),
-                                label: const Text('New Cycle'),
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Overview Summary Cards Grid
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isMobile = constraints.maxWidth < 600;
-                      return GridView.count(
-                        crossAxisCount: isMobile ? 2 : 4,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: isMobile ? 1.4 : 1.6,
-                        children: [
-                          _buildStatCard(
-                            context,
-                            title: 'Total Employees',
-                            value: '${hrProvider.totalEmployees}',
-                            icon: Icons.people_outline,
-                            color: AppTheme.primaryColor,
-                          ),
-                          _buildStatCard(
-                            context,
-                            title: 'Managers',
-                            value: '${hrProvider.totalManagers}',
-                            icon: Icons.supervisor_account_outlined,
-                            color: AppTheme.secondaryColor,
-                          ),
-                          _buildStatCard(
-                            context,
-                            title: 'Completed',
-                            value: '${hrProvider.completedReviews}',
-                            icon: Icons.check_circle_outline,
-                            color: AppTheme.successColor,
-                          ),
-                          _buildStatCard(
-                            context,
-                            title: 'Pending',
-                            value: '${hrProvider.pendingReviews}',
-                            icon: Icons.pending_actions_outlined,
-                            color: AppTheme.warningColor,
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Donut Chart & Completion Summary Section
-                  Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
+                  // Top Title & Cycle Creation Header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Submission Compliance Ratio',
+                            'Evaluation Compliance Overview',
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(height: 20),
-                          Row(
-                            children: [
-                              SizedBox(
-                                height: 140,
-                                width: 140,
-                                child: PieChart(
-                                  PieChartData(
-                                    sectionsSpace: 2,
-                                    centerSpaceRadius: 40,
-                                    sections: [
-                                      PieChartSectionData(
-                                        color: AppTheme.successColor,
-                                        value: hrProvider.completedReviews.toDouble(),
-                                        title: '${hrProvider.completedReviews}',
-                                        radius: 30,
-                                        titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Tenant Active Cycle: $cycleName',
+                            style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      ElevatedButton.icon(
+                        onPressed: () => _showCreateCycleDialog(context),
+                        icon: const Icon(Icons.add_rounded, size: 18),
+                        label: const Text('Create Cycle'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Cycle Filter Dropdown Bar
+                  if (hrProvider.cyclesList.isNotEmpty)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.filter_alt_rounded, color: AppTheme.primaryColor, size: 20),
+                            const SizedBox(width: 10),
+                            const Text(
+                              'Filter Review Cycle:',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedFilterCycleId ?? hrProvider.cycle?['id'],
+                                  isExpanded: true,
+                                  items: hrProvider.cyclesList.map<DropdownMenuItem<String>>((c) {
+                                    final cId = c['id'] as String;
+                                    final cName = c['name'] ?? 'Cycle';
+                                    final cCode = c['cycle_code'] ?? '';
+                                    final isActive = (c['is_active'] as bool?) ?? false;
+
+                                    return DropdownMenuItem<String>(
+                                      value: cId,
+                                      child: Text(
+                                        '$cName ($cCode)${isActive ? " • ACTIVE" : ""}',
+                                        style: TextStyle(
+                                          fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                                          color: isActive ? AppTheme.primaryColor : AppTheme.textPrimaryColor,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      PieChartSectionData(
-                                        color: AppTheme.warningColor,
-                                        value: hrProvider.draftReviews.toDouble(),
-                                        title: '${hrProvider.draftReviews}',
-                                        radius: 30,
-                                        titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
-                                      ),
-                                      PieChartSectionData(
-                                        color: AppTheme.errorColor.withOpacity(0.7),
-                                        value: hrProvider.notStartedReviews.toDouble(),
-                                        title: '${hrProvider.notStartedReviews}',
-                                        radius: 30,
-                                        titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() {
+                                        _selectedFilterCycleId = val;
+                                      });
+                                      hrProvider.fetchDashboard(cycleId: val);
+                                    }
+                                  },
                                 ),
                               ),
-                              const SizedBox(width: 24),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildLegendRow('Completed Submissions', AppTheme.successColor, hrProvider.completedReviews),
-                                    const SizedBox(height: 8),
-                                    _buildLegendRow('Drafts In-Progress', AppTheme.warningColor, hrProvider.draftReviews),
-                                    const SizedBox(height: 8),
-                                    _buildLegendRow('Not Started', AppTheme.errorColor.withOpacity(0.7), hrProvider.notStartedReviews),
-                                    const SizedBox(height: 14),
-                                    Text(
-                                      'Overall Completion: ${hrProvider.overallCompletionPercentage.toStringAsFixed(1)}%',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppTheme.primaryColor),
-                                    ),
-                                  ],
-                                ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+
+                  // 4 Top Metric Analytics Cards Grid
+                  GridView.count(
+                    crossAxisCount: MediaQuery.of(context).size.width > 900 ? 4 : (MediaQuery.of(context).size.width > 600 ? 2 : 1),
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: 2.2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      _buildSummaryCard(
+                        title: 'Total Active Employees',
+                        value: '${hrProvider.totalEmployees}',
+                        icon: Icons.people_outline_rounded,
+                        color: AppTheme.primaryColor,
+                      ),
+                      _buildSummaryCard(
+                        title: 'Total Managers',
+                        value: '${hrProvider.totalManagers}',
+                        icon: Icons.supervisor_account_rounded,
+                        color: AppTheme.secondaryColor,
+                      ),
+                      _buildSummaryCard(
+                        title: 'Completed Reviews',
+                        value: '${hrProvider.completedReviews}',
+                        icon: Icons.check_circle_outline_rounded,
+                        color: AppTheme.successColor,
+                      ),
+                      _buildSummaryCard(
+                        title: 'Pending Submissions',
+                        value: '${hrProvider.pendingReviews}',
+                        icon: Icons.pending_actions_rounded,
+                        color: AppTheme.warningColor,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Overall Submission Progress Bar Card
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Overall Manager Submissions Compliance Rate',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              ),
+                              Text(
+                                '${hrProvider.overallCompletionPercentage.toStringAsFixed(1)}%',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 12),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: LinearProgressIndicator(
+                              value: hrProvider.overallCompletionPercentage / 100.0,
+                              minHeight: 12,
+                              backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
+                              valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
-                  // Quick Action Navigation Buttons
+                  // Manager-Wise Submission Compliance Breakdown Table
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => context.push('/hr/managers'),
-                          icon: const Icon(Icons.list_alt_rounded),
-                          label: const Text('Managers Breakdown'),
-                        ),
+                      Text(
+                        'Manager Submission Status Roster',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => context.push('/hr/pending'),
-                          icon: const Icon(Icons.pending_actions_rounded),
-                          label: const Text('Pending Reviews'),
-                        ),
+                      Text(
+                        '${hrProvider.managers.length} Managers',
+                        style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
                       ),
                     ],
                   ),
+                  const SizedBox(height: 14),
+
+                  if (hrProvider.managers.isEmpty)
+                    const Card(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(
+                          child: Text(
+                            'No manager submission records found for this cycle.',
+                            style: TextStyle(color: AppTheme.textSecondaryColor),
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    Card(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(label: Text('Manager Name', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Department', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Direct Reports', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Completed', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Pending', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('Submission Status', style: TextStyle(fontWeight: FontWeight.bold))),
+                          ],
+                          rows: hrProvider.managers.map((m) {
+                            final name = m['manager_name'] ?? 'Manager';
+                            final dept = m['department'] ?? 'General';
+                            final totalReports = m['total_direct_reports'] ?? 0;
+                            final completed = m['completed_submissions'] ?? 0;
+                            final pending = m['pending_submissions'] ?? 0;
+                            final status = m['submission_status'] ?? 'PENDING';
+
+                            Color statusColor = AppTheme.warningColor;
+                            if (status == 'COMPLETED') statusColor = AppTheme.successColor;
+                            if (status == 'IN_PROGRESS') statusColor = AppTheme.primaryColor;
+
+                            return DataRow(
+                              cells: [
+                                DataCell(
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 14,
+                                        backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
+                                        child: Text(
+                                          name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                                DataCell(Text(dept)),
+                                DataCell(Text('$totalReports Employees')),
+                                DataCell(Text('$completed', style: const TextStyle(color: AppTheme.successColor, fontWeight: FontWeight.bold))),
+                                DataCell(Text('$pending', style: TextStyle(color: pending > 0 ? AppTheme.warningColor : AppTheme.textSecondaryColor))),
+                                DataCell(
+                                  Chip(
+                                    label: Text(
+                                      status.replaceAll('_', ' '),
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                                    ),
+                                    backgroundColor: statusColor,
+                                    side: BorderSide.none,
+                                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -453,55 +537,41 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(BuildContext context, {required String title, required String value, required IconData icon, required Color color}) {
+  Widget _buildSummaryCard({required String title, required String value, required IconData icon, required Color color}) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const Spacer(),
-                Text(
-                  value,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: color),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 26),
             ),
-            const SizedBox(height: 6),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: color),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    title,
+                    style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildLegendRow(String title, Color color, int count) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 13),
-          ),
-        ),
-        Text(
-          '$count',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-        ),
-      ],
     );
   }
 }

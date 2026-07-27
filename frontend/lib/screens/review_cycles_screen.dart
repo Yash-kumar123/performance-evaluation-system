@@ -7,6 +7,7 @@ import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
+import '../core/widgets/custom_error_widget.dart';
 
 class ReviewCyclesScreen extends StatefulWidget {
   const ReviewCyclesScreen({super.key});
@@ -163,112 +164,118 @@ class _ReviewCyclesScreenState extends State<ReviewCyclesScreen> {
         onRefresh: () async {
           await hrProvider.fetchCycles();
         },
-        child: cycles.isEmpty
-            ? const EmptyStateWidget(
+        child: Builder(
+          builder: (context) {
+            if (hrProvider.isLoadingCycles) {
+              return const LoadingWidget(message: 'Loading review cycles...');
+            }
+
+            if (hrProvider.errorCycles != null) {
+              return CustomErrorWidget(
+                message: hrProvider.errorCycles!,
+                onRetry: () => hrProvider.fetchCycles(),
+              );
+            }
+
+            if (cycles.isEmpty) {
+              return const EmptyStateWidget(
                 title: 'No Review Cycles Found',
                 message: 'No evaluation cycles have been created for this company yet.',
                 icon: Icons.calendar_month_rounded,
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.all(16.0),
-                itemCount: cycles.length,
-                itemBuilder: (context, index) {
-                  final c = cycles[index];
-                  final cycleId = c['id'] as String;
-                  final name = c['name'] ?? 'Evaluation Cycle';
-                  final code = c['cycle_code'] ?? '';
-                  final startDate = (c['start_date'] as String? ?? '').split('T')[0];
-                  final endDate = (c['end_date'] as String? ?? '').split('T')[0];
-                  final isActive = (c['is_active'] as bool?) ?? false;
+              );
+            }
 
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 14),
-                    child: Padding(
-                      padding: const EdgeInsets.all(18.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: (isActive ? AppTheme.successColor : AppTheme.primaryColor).withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Icon(
-                                      Icons.calendar_month_rounded,
-                                      color: isActive ? AppTheme.successColor : AppTheme.primaryColor,
-                                      size: 24,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Code: $code',
-                                        style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              Chip(
-                                label: Text(
-                                  isActive ? 'ACTIVE CYCLE' : 'CLOSED',
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
-                                ),
-                                backgroundColor: isActive ? AppTheme.successColor : AppTheme.textSecondaryColor,
-                                side: BorderSide.none,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              const Icon(Icons.date_range_rounded, size: 16, color: AppTheme.textSecondaryColor),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Period: $startDate to $endDate',
-                                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
-                              ),
-                            ],
-                          ),
-                          if (isHR) ...[
-                            const SizedBox(height: 12),
-                            const Divider(),
+            return ListView.builder(
+              padding: const EdgeInsets.all(16.0),
+              itemCount: cycles.length,
+              itemBuilder: (context, index) {
+                final c = cycles[index];
+                final cycleId = c['id'] as String;
+                final name = c['name'] ?? 'Evaluation Cycle';
+                final startDate = (c['start_date'] as String? ?? '').split('T')[0];
+                final endDate = (c['end_date'] as String? ?? '').split('T')[0];
+                final isActive = (c['is_active'] as bool?) ?? false;
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                TextButton.icon(
-                                  onPressed: () => _showEditCycleDialog(context, c),
-                                  icon: const Icon(Icons.edit_rounded, size: 16),
-                                  label: const Text('Edit'),
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: (isActive ? AppTheme.successColor : AppTheme.primaryColor).withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(
+                                    Icons.calendar_month_rounded,
+                                    color: isActive ? AppTheme.successColor : AppTheme.primaryColor,
+                                    size: 24,
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                TextButton.icon(
-                                  onPressed: () => _confirmDeleteCycle(context, cycleId, name),
-                                  icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.errorColor),
-                                  label: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+                                const SizedBox(width: 12),
+                                Text(
+                                  name,
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                               ],
                             ),
+                            Chip(
+                              label: Text(
+                                isActive ? 'ACTIVE CYCLE' : 'CLOSED',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                              ),
+                              backgroundColor: isActive ? AppTheme.successColor : AppTheme.textSecondaryColor,
+                              side: BorderSide.none,
+                            ),
                           ],
+                        ),
+                        const SizedBox(height: 14),
+                        Row(
+                          children: [
+                            const Icon(Icons.date_range_rounded, size: 16, color: AppTheme.textSecondaryColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Period: $startDate to $endDate',
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                        if (isHR) ...[
+                          const SizedBox(height: 12),
+                          const Divider(),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                onPressed: () => _showEditCycleDialog(context, c),
+                                icon: const Icon(Icons.edit_rounded, size: 16),
+                                label: const Text('Edit'),
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton.icon(
+                                onPressed: () => _confirmDeleteCycle(context, cycleId, name),
+                                icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppTheme.errorColor),
+                                label: const Text('Delete', style: TextStyle(color: AppTheme.errorColor)),
+                              ),
+                            ],
+                          ),
                         ],
-                      ),
+                      ],
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ),
     );
   }

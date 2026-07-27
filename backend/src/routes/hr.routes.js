@@ -4,8 +4,14 @@ const HRController = require('../controllers/hr.controller');
 const authenticateJWT = require('../middleware/auth.middleware');
 const authorizeRoles = require('../middleware/role.middleware');
 
-// All HR routes require JWT auth & HR role
-router.use(authenticateJWT, authorizeRoles('HR'));
+// All HR routes require JWT auth
+router.use(authenticateJWT);
+
+// Shared GET route for all tenant users to view evaluation review cycles
+router.get('/cycles', HRController.getCycles);
+
+// HR Role Required for all administrative actions below
+router.use(authorizeRoles('HR'));
 
 // GET /api/hr/dashboard
 router.get('/dashboard', HRController.getDashboard);
@@ -22,11 +28,10 @@ router.post('/users', HRController.createUser);
 router.put('/users/:id', HRController.updateUser);
 router.delete('/users/:id', HRController.deleteUser);
 
-// Date-wise Cycle Management Routes
+// Date-wise Cycle Management Routes (Creation, Modification, Deletion)
 router.post('/cycles', HRController.createCycle);
 router.put('/cycles/:id', HRController.updateCycle);
 router.delete('/cycles/:id', HRController.deleteCycle);
-router.get('/cycles', HRController.getCycles);
 
 // Manager Assignment Route
 router.patch('/assign-manager', HRController.assignManager);
