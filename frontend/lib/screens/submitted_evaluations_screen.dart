@@ -55,7 +55,7 @@ class SubmittedEvaluationsScreen extends StatelessWidget {
                     trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppTheme.textSecondaryColor),
                     onTap: () {
                       if (evalId != null) {
-                        context.go('/evaluation/$evalId');
+                        context.push('/evaluation/$evalId');
                       }
                     },
                   ),

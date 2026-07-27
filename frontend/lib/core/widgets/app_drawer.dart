@@ -103,7 +103,7 @@ class AppDrawer extends StatelessWidget {
                 minLeadingWidth: 24,
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/hr/teams');
+                  context.push('/hr/teams');
                 },
               ),
               ListTile(
@@ -112,7 +112,7 @@ class AppDrawer extends StatelessWidget {
                 minLeadingWidth: 24,
                 onTap: () {
                   Navigator.pop(context);
-                  context.go('/hr/project-teams');
+                  context.push('/hr/project-teams');
                 },
               ),
             ],
@@ -122,7 +122,7 @@ class AppDrawer extends StatelessWidget {
               minLeadingWidth: 24,
               onTap: () {
                 Navigator.pop(context);
-                context.go('/cycles');
+                context.push('/cycles');
               },
             ),
             ListTile(
@@ -131,7 +131,7 @@ class AppDrawer extends StatelessWidget {
               minLeadingWidth: 24,
               onTap: () {
                 Navigator.pop(context);
-                context.go('/history');
+                context.push('/history');
               },
             ),
             ListTile(
@@ -140,7 +140,7 @@ class AppDrawer extends StatelessWidget {
               minLeadingWidth: 24,
               onTap: () {
                 Navigator.pop(context);
-                context.go('/profile');
+                context.push('/profile');
               },
             ),
             const Divider(),

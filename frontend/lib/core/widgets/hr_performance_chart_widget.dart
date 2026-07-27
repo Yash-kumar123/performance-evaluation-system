@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import '../config/app_theme.dart';
 import '../utils/responsive_utils.dart';
 
@@ -9,6 +10,48 @@ class HRPerformanceChartWidget extends StatelessWidget {
     super.key,
     required this.trendPoints,
   });
+
+  String _formatMonthLabel(Map<String, dynamic> point) {
+    final startDate = point['startDate'] as String?;
+    if (startDate != null && startDate.isNotEmpty) {
+      final parsed = DateTime.tryParse(startDate);
+      if (parsed != null) {
+        return DateFormat('MMMM yyyy').format(parsed);
+      }
+    }
+
+    final cycleName = (point['cycleName'] as String?) ?? '';
+    if (cycleName.isNotEmpty) return cycleName;
+
+    return (point['cycleCode'] as String?) ?? 'Unknown Month';
+  }
+
+  Map<String, dynamic>? _bestPerformingPoint() {
+    Map<String, dynamic>? best;
+    double bestScore = 0;
+    for (final p in trendPoints) {
+      final score = (p['avgScore'] as num? ?? 0).toDouble();
+      if (score > bestScore) {
+        bestScore = score;
+        best = p as Map<String, dynamic>;
+      }
+    }
+    return best;
+  }
+
+  Map<String, dynamic>? _lowestPerformingPoint() {
+    Map<String, dynamic>? lowest;
+    double? lowestScore;
+    for (final p in trendPoints) {
+      final score = (p['avgScore'] as num? ?? 0).toDouble();
+      if (score <= 0) continue;
+      if (lowestScore == null || score < lowestScore) {
+        lowestScore = score;
+        lowest = p as Map<String, dynamic>;
+      }
+    }
+    return lowest;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,16 +73,15 @@ class HRPerformanceChartWidget extends StatelessWidget {
       );
     }
 
-    // Calculations for summary stats
     final validScores = trendPoints.map<double>((p) => (p['avgScore'] as num? ?? 0.0).toDouble()).toList();
     final nonZeroScores = validScores.where((s) => s > 0).toList();
 
-    final maxScore = nonZeroScores.isNotEmpty ? nonZeroScores.reduce((a, b) => a > b ? a : b) : 0.0;
-    final minScore = nonZeroScores.isNotEmpty ? nonZeroScores.reduce((a, b) => a < b ? a : b) : 0.0;
     final avgScore = nonZeroScores.isNotEmpty ? nonZeroScores.reduce((a, b) => a + b) / nonZeroScores.length : 0.0;
     final totalSubmissions = trendPoints.fold<int>(0, (sum, p) => sum + (p['submittedCount'] as int? ?? 0));
 
-    // Aggregate parameter scores across all trend points
+    final bestPoint = _bestPerformingPoint();
+    final lowestPoint = _lowestPerformingPoint();
+
     final Map<String, List<double>> paramMap = {};
     for (final p in trendPoints) {
       final map = p['parameterScores'] as Map<String, dynamic>? ?? {};
@@ -59,21 +101,50 @@ class HRPerformanceChartWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Summary Metrics Row
         Wrap(
           spacing: 8,
           runSpacing: 8,
           alignment: WrapAlignment.spaceBetween,
           children: [
-            _buildStatBadge('Trend Avg', '${avgScore.toStringAsFixed(2)} / 5.0', AppTheme.primaryColor),
-            _buildStatBadge('Highest Cycle', maxScore > 0 ? maxScore.toStringAsFixed(2) : 'N/A', AppTheme.successColor),
-            _buildStatBadge('Lowest Cycle', minScore > 0 ? minScore.toStringAsFixed(2) : 'N/A', AppTheme.warningColor),
-            _buildStatBadge('Total Reviews', '$totalSubmissions', AppTheme.secondaryColor),
+            _buildStatBadge(
+              label: 'Overall Average',
+              primaryValue: '${avgScore.toStringAsFixed(2)} / 5',
+              color: AppTheme.primaryColor,
+            ),
+            if (bestPoint != null)
+              _buildStatBadge(
+                label: 'Best Performing Month',
+                primaryValue: _formatMonthLabel(bestPoint),
+                secondaryValue: '${(bestPoint['avgScore'] as num).toDouble().toStringAsFixed(2)} / 5',
+                color: AppTheme.successColor,
+              )
+            else
+              _buildStatBadge(
+                label: 'Best Performing Month',
+                primaryValue: 'N/A',
+                color: AppTheme.successColor,
+              ),
+            if (lowestPoint != null)
+              _buildStatBadge(
+                label: 'Lowest Performing Month',
+                primaryValue: _formatMonthLabel(lowestPoint),
+                secondaryValue: '${(lowestPoint['avgScore'] as num).toDouble().toStringAsFixed(2)} / 5',
+                color: AppTheme.warningColor,
+              )
+            else
+              _buildStatBadge(
+                label: 'Lowest Performing Month',
+                primaryValue: 'N/A',
+                color: AppTheme.warningColor,
+              ),
+            _buildStatBadge(
+              label: 'Total Reviews',
+              primaryValue: '$totalSubmissions',
+              color: AppTheme.secondaryColor,
+            ),
           ],
         ),
         const SizedBox(height: 20),
-
-        // Custom Visual Performance Trend Chart Canvas
         LayoutBuilder(
           builder: (context, constraints) {
             return Container(
@@ -93,8 +164,6 @@ class HRPerformanceChartWidget extends StatelessWidget {
           },
         ),
         const SizedBox(height: 20),
-
-        // Parameter Breakdown Ratings Bar
         if (avgParamScores.isNotEmpty) ...[
           const Text(
             'Evaluation Parameter Averages',
@@ -140,18 +209,35 @@ class HRPerformanceChartWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStatBadge(String label, String value, Color color) {
+  Widget _buildStatBadge({
+    required String label,
+    required String primaryValue,
+    String? secondaryValue,
+    required Color color,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      constraints: const BoxConstraints(minWidth: 140),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: color.withOpacity(0.08),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
-          const SizedBox(height: 2),
+          Text(
+            primaryValue,
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color),
+          ),
+          if (secondaryValue != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              secondaryValue,
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color.withOpacity(0.9)),
+            ),
+          ],
+          const SizedBox(height: 4),
           Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.textSecondaryColor)),
         ],
       ),
@@ -168,10 +254,10 @@ class PerformanceTrendPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (trendPoints.isEmpty) return;
 
-    final double paddingLeft = 32.0;
-    final double paddingBottom = 24.0;
-    final double paddingTop = 16.0;
-    final double paddingRight = 16.0;
+    const double paddingLeft = 32.0;
+    const double paddingBottom = 24.0;
+    const double paddingTop = 16.0;
+    const double paddingRight = 16.0;
 
     final double chartWidth = size.width - paddingLeft - paddingRight;
     final double chartHeight = size.height - paddingTop - paddingBottom;
@@ -182,7 +268,6 @@ class PerformanceTrendPainter extends CustomPainter {
 
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
 
-    // Draw Y-Axis Grid Lines (1.0 to 5.0)
     for (int i = 1; i <= 5; i++) {
       final double y = paddingTop + chartHeight - ((i / 5.0) * chartHeight);
       canvas.drawLine(Offset(paddingLeft, y), Offset(size.width - paddingRight, y), gridPaint);
@@ -224,7 +309,6 @@ class PerformanceTrendPainter extends CustomPainter {
         fillPath.close();
       }
 
-      // Draw X-Axis Labels (Cycle Code or Month)
       final cycleCode = (p['cycleCode'] as String? ?? 'C${i + 1}').replaceAll('Cycle Evaluation ', '');
       textPainter.text = TextSpan(
         text: cycleCode.length > 8 ? cycleCode.substring(0, 8) : cycleCode,
@@ -234,7 +318,6 @@ class PerformanceTrendPainter extends CustomPainter {
       textPainter.paint(canvas, Offset(x - (textPainter.width / 2), size.height - paddingBottom + 6));
     }
 
-    // Draw Fill Gradient
     final fillGradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -247,14 +330,12 @@ class PerformanceTrendPainter extends CustomPainter {
       ..shader = fillGradient.createShader(Rect.fromLTWH(paddingLeft, paddingTop, chartWidth, chartHeight));
     canvas.drawPath(fillPath, fillPaint);
 
-    // Draw Smooth Line
     final linePaint = Paint()
       ..color = AppTheme.primaryColor
       ..strokeWidth = 3.0
       ..style = PaintingStyle.stroke;
     canvas.drawPath(linePath, linePaint);
 
-    // Draw Data Point Circles & Score Labels
     final pointPaint = Paint()..color = AppTheme.primaryColor;
     final whitePaint = Paint()..color = Colors.white;
 

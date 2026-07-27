@@ -45,6 +45,7 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
     String selectedRole = 'EMPLOYEE';
     String? selectedManagerId;
     final formKey = GlobalKey<FormState>();
+    var obscurePassword = true;
 
     showDialog(
       context: context,
@@ -61,30 +62,42 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
                 Text('Add Team Member'),
               ],
             ),
-            content: SingleChildScrollView(
-              child: Form(
-                key: formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextFormField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Full Name', hintText: 'e.g. John Doe'),
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: emailController,
-                      decoration: const InputDecoration(labelText: 'Email Address', hintText: 'john@company.com'),
-                      validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: passwordController,
-                      decoration: const InputDecoration(labelText: 'Initial Password'),
-                      validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
+            content: SafeArea(
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Full Name', hintText: 'e.g. John Doe'),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: emailController,
+                        decoration: const InputDecoration(labelText: 'Email Address', hintText: 'john@company.com'),
+                        validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null,
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: passwordController,
+                        obscureText: obscurePassword,
+                        decoration: InputDecoration(
+                          labelText: 'Temporary Password',
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                              size: 20,
+                            ),
+                            tooltip: obscurePassword ? 'Show password' : 'Hide password',
+                            onPressed: () => setModalState(() => obscurePassword = !obscurePassword),
+                          ),
+                        ),
+                        validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: selectedRole,
                       decoration: const InputDecoration(labelText: 'System Role'),
@@ -130,6 +143,7 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
                   ],
                 ),
               ),
+            ),
             ),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),

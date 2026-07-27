@@ -108,7 +108,8 @@ class ManagerProvider with ChangeNotifier {
   }
 
   /// Submit or Save Draft Evaluation
-  Future<bool> createOrUpdateEvaluation({
+  /// Returns the saved evaluation map on success, or null on failure.
+  Future<Map<String, dynamic>?> createOrUpdateEvaluation({
     required String cycleId,
     required String employeeId,
     required List<Map<String, dynamic>> scores,
@@ -124,14 +125,12 @@ class ManagerProvider with ChangeNotifier {
       late final dynamic response;
 
       if (existingEvaluationId != null && existingEvaluationId.isNotEmpty) {
-        // Update existing draft
         response = await _apiClient.put('/managers/evaluations/$existingEvaluationId', data: {
           'scores': scores,
           'summaryComment': summaryComment ?? '',
           'submit': submit,
         });
       } else {
-        // Create new evaluation
         response = await _apiClient.post('/managers/evaluations', data: {
           'cycleId': cycleId,
           'employeeId': employeeId,
@@ -142,21 +141,36 @@ class ManagerProvider with ChangeNotifier {
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        await fetchTeamStatus(); // Refresh team status
+        await fetchTeamStatus();
         _isLoadingSubmitting = false;
         notifyListeners();
-        return true;
+        final data = response.data['data'];
+        if (data is Map<String, dynamic>) {
+          return data;
+        }
+        return null;
       } else {
         _errorSubmitting = response.data['message'] ?? 'Failed to save evaluation.';
         _isLoadingSubmitting = false;
         notifyListeners();
-        return false;
+        return null;
       }
     } catch (e) {
       _errorSubmitting = e.toString().replaceAll('Exception:', '').trim();
       _isLoadingSubmitting = false;
       notifyListeners();
-      return false;
+      return null;
     }
+  }
+
+  /// Fetch evaluation details for editing or viewing a draft.
+  Future<Map<String, dynamic>?> fetchEvaluationById(String evaluationId) async {
+    try {
+      final response = await _apiClient.get('/evaluations/$evaluationId');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return response.data['data'] as Map<String, dynamic>?;
+      }
+    } catch (_) {}
+    return null;
   }
 }

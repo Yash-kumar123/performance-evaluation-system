@@ -130,7 +130,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         SizedBox(
                           height: ResponsiveUtils.primaryButtonMinHeight,
                           child: ElevatedButton.icon(
-                            onPressed: () => context.go('/manager/team'),
+                            onPressed: () => context.push('/manager/team'),
                             icon: const Icon(Icons.people_outline_rounded, size: 18),
                             label: const Text('My Direct Team'),
                           ),
@@ -139,7 +139,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         SizedBox(
                           height: ResponsiveUtils.primaryButtonMinHeight,
                           child: OutlinedButton.icon(
-                            onPressed: () => context.go('/manager/submitted'),
+                            onPressed: () => context.push('/manager/submitted'),
                             icon: const Icon(Icons.task_alt_rounded, size: 18),
                             label: const Text('Submitted Reviews'),
                           ),
@@ -153,7 +153,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         child: SizedBox(
                           height: ResponsiveUtils.primaryButtonMinHeight,
                           child: ElevatedButton.icon(
-                            onPressed: () => context.go('/manager/team'),
+                            onPressed: () => context.push('/manager/team'),
                             icon: const Icon(Icons.people_outline_rounded, size: 18),
                             label: const Text('My Direct Team'),
                           ),
@@ -164,7 +164,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         child: SizedBox(
                           height: ResponsiveUtils.primaryButtonMinHeight,
                           child: OutlinedButton.icon(
-                            onPressed: () => context.go('/manager/submitted'),
+                            onPressed: () => context.push('/manager/submitted'),
                             icon: const Icon(Icons.task_alt_rounded, size: 18),
                             label: const Text('Submitted Reviews'),
                           ),
@@ -211,7 +211,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                       value: '${mgrProvider.totalReports}',
                       icon: Icons.groups_outlined,
                       color: AppTheme.primaryColor,
-                      onTap: () => context.go('/manager/team'),
+                      onTap: () => context.push('/manager/team'),
                     ),
                     _buildMetricCard(
                       context,
@@ -219,7 +219,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                       value: '${mgrProvider.completedCount}',
                       icon: Icons.check_circle_outline_rounded,
                       color: AppTheme.successColor,
-                      onTap: () => context.go('/manager/submitted'),
+                      onTap: () => context.push('/manager/submitted'),
                     ),
                     _buildMetricCard(
                       context,
@@ -227,7 +227,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                       value: '${mgrProvider.pendingCount}',
                       icon: Icons.hourglass_empty_rounded,
                       color: AppTheme.warningColor,
-                      onTap: () => context.go('/manager/team?filter=PENDING'),
+                      onTap: () => context.push('/manager/team?filter=PENDING'),
                     ),
                     _buildMetricCard(
                       context,
@@ -235,7 +235,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                       value: '${mgrProvider.completionPercentage.toStringAsFixed(0)}%',
                       icon: Icons.pie_chart_outline_rounded,
                       color: AppTheme.secondaryColor,
-                      onTap: () => context.go('/manager/team'),
+                      onTap: () => context.push('/manager/team'),
                     ),
                   ],
                 ),

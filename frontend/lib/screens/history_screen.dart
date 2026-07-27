@@ -138,7 +138,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ),
                     trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppTheme.textSecondaryColor),
                     onTap: () {
-                      context.go('/evaluation/$evalId');
+                      context.push('/evaluation/$evalId');
                     },
                   ),
                 );

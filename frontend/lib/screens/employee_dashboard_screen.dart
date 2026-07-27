@@ -231,7 +231,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                   SizedBox(
                     width: ResponsiveUtils.isCompact(context) ? double.infinity : null,
                     child: OutlinedButton.icon(
-                      onPressed: () => context.go('/cycles'),
+                      onPressed: () => context.push('/cycles'),
                       icon: const Icon(Icons.calendar_month_rounded, size: 18),
                       label: const Text('Review Cycles'),
                     ),
@@ -239,7 +239,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                   SizedBox(
                     width: ResponsiveUtils.isCompact(context) ? double.infinity : null,
                     child: OutlinedButton.icon(
-                      onPressed: () => context.go('/history'),
+                      onPressed: () => context.push('/history'),
                       icon: const Icon(Icons.history_rounded, size: 18),
                       label: const Text('History'),
                     ),
@@ -247,7 +247,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                   SizedBox(
                     width: ResponsiveUtils.isCompact(context) ? double.infinity : null,
                     child: OutlinedButton.icon(
-                      onPressed: () => context.go('/profile'),
+                      onPressed: () => context.push('/profile'),
                       icon: const Icon(Icons.person_outline_rounded, size: 18),
                       label: const Text('Profile'),
                     ),
@@ -504,7 +504,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
               button: true,
               label: 'View official score sheet',
               child: ResponsiveUtils.primaryButton(
-                onPressed: () => context.go('/evaluation/$evalId'),
+                onPressed: () => context.push('/evaluation/$evalId'),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

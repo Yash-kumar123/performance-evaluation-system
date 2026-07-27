@@ -60,10 +60,12 @@ class _TeamScreenState extends State<TeamScreen> {
     final titleController = TextEditingController(text: 'Team Member');
     final deptController = TextEditingController(text: 'Operations');
     final formKey = GlobalKey<FormState>();
+    var obscurePassword = true;
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) => AlertDialog(
         title: const Row(
           children: [
             Icon(Icons.person_add_rounded, color: AppTheme.primaryColor),
@@ -71,62 +73,72 @@ class _TeamScreenState extends State<TeamScreen> {
             Text('Register New Team Member'),
           ],
         ),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Add a new employee to your direct reporting roster.',
-                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryColor),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Full Name',
-                    hintText: 'e.g. Karan Verma',
+        content: SafeArea(
+          child: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Add a new employee to your direct reporting roster.',
+                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryColor),
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email Address',
-                    hintText: 'e.g. karan@company.com',
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Full Name',
+                      hintText: 'e.g. Karan Verma',
+                    ),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
-                  validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: passwordController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Initial Password',
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email Address',
+                      hintText: 'e.g. karan@company.com',
+                    ),
+                    validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null,
                   ),
-                  validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Job Title',
-                    hintText: 'e.g. Senior Analyst',
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: passwordController,
+                    obscureText: obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Temporary Password',
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                          size: 20,
+                        ),
+                        tooltip: obscurePassword ? 'Show password' : 'Hide password',
+                        onPressed: () => setModalState(() => obscurePassword = !obscurePassword),
+                      ),
+                    ),
+                    validator: (v) => (v == null || v.length < 6) ? 'Min 6 characters' : null,
                   ),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: deptController,
-                  decoration: const InputDecoration(
-                    labelText: 'Department',
-                    hintText: 'e.g. Engineering',
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Job Title',
+                      hintText: 'e.g. Senior Analyst',
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: deptController,
+                    decoration: const InputDecoration(
+                      labelText: 'Department',
+                      hintText: 'e.g. Engineering',
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -160,6 +172,7 @@ class _TeamScreenState extends State<TeamScreen> {
             child: const Text('Register Member'),
           ),
         ],
+      ),
       ),
     );
   }
@@ -408,7 +421,11 @@ class _TeamScreenState extends State<TeamScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    status == 'SUBMITTED' ? 'View' : 'Evaluate',
+                                    status == 'SUBMITTED'
+                                        ? 'View'
+                                        : status == 'PENDING'
+                                            ? 'Continue Draft'
+                                            : 'Evaluate',
                                     style: const TextStyle(
                                       color: AppTheme.primaryColor,
                                       fontSize: 12,
@@ -422,9 +439,9 @@ class _TeamScreenState extends State<TeamScreen> {
                           trailing: const Icon(Icons.chevron_right_rounded, color: AppTheme.primaryColor),
                           onTap: () {
                             if (status == 'SUBMITTED' && evalId != null) {
-                              context.go('/evaluation/$evalId');
+                              context.push('/evaluation/$evalId');
                             } else {
-                              context.go(
+                              context.push(
                                 Uri(
                                   path: '/manager/create-evaluation',
                                   queryParameters: {
