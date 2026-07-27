@@ -521,4 +521,67 @@ class HRProvider with ChangeNotifier {
       return false;
     }
   }
+
+  // --- HR Performance Analytics Trends State ---
+  bool _isLoadingAnalytics = false;
+  String? _errorAnalytics;
+  String _analyticsMode = 'CYCLES'; // 'CYCLES' | 'YEAR'
+  int _selectedAnalyticsYear = DateTime.now().year;
+  int _selectedAnalyticsCycleLimit = 5;
+  String _selectedAnalyticsEmployeeId = 'ALL';
+  Map<String, dynamic>? _analyticsData;
+
+  bool get isLoadingAnalytics => _isLoadingAnalytics;
+  String? get errorAnalytics => _errorAnalytics;
+  String get analyticsMode => _analyticsMode;
+  int get selectedAnalyticsYear => _selectedAnalyticsYear;
+  int get selectedAnalyticsCycleLimit => _selectedAnalyticsCycleLimit;
+  String get selectedAnalyticsEmployeeId => _selectedAnalyticsEmployeeId;
+  Map<String, dynamic>? get analyticsData => _analyticsData;
+  List<int> get availableAnalyticsYears => List<int>.from(_analyticsData?['availableYears'] ?? [DateTime.now().year]);
+  List<dynamic> get analyticsEmployees => _analyticsData?['employees'] ?? [];
+  List<dynamic> get analyticsTrendPoints => _analyticsData?['trendPoints'] ?? [];
+
+  /// Fetch HR Performance Analytics Trends
+  Future<void> fetchPerformanceAnalytics({
+    String? mode,
+    int? year,
+    int? cycleLimit,
+    String? employeeId,
+  }) async {
+    if (mode != null) _analyticsMode = mode;
+    if (year != null) _selectedAnalyticsYear = year;
+    if (cycleLimit != null) _selectedAnalyticsCycleLimit = cycleLimit;
+    if (employeeId != null) _selectedAnalyticsEmployeeId = employeeId;
+
+    _isLoadingAnalytics = true;
+    _errorAnalytics = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.get('/hr/analytics/performance', queryParameters: {
+        'mode': _analyticsMode,
+        'year': _selectedAnalyticsYear,
+        'cycleLimit': _selectedAnalyticsCycleLimit,
+        'employeeId': _selectedAnalyticsEmployeeId,
+      });
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        _analyticsData = response.data['data'];
+        if (_analyticsData != null) {
+          final years = availableAnalyticsYears;
+          if (years.isNotEmpty && !years.contains(_selectedAnalyticsYear)) {
+            _selectedAnalyticsYear = years.first;
+          }
+        }
+      } else {
+        _errorAnalytics = response.data['message'] ?? 'Failed to load performance analytics.';
+      }
+    } catch (e) {
+      _errorAnalytics = e.toString().replaceAll('Exception:', '').trim();
+    } finally {
+      _isLoadingAnalytics = false;
+      notifyListeners();
+    }
+  }
 }

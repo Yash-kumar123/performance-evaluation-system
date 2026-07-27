@@ -160,6 +160,15 @@ class HRController {
       next(error);
     }
   }
+
+  static async getPerformanceAnalytics(req, res, next) {
+    try {
+      const data = await HRService.getPerformanceAnalytics(req.tenantId, req.query);
+      return sendSuccess(res, 200, 'HR performance analytics trends retrieved successfully', data);
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = HRController;

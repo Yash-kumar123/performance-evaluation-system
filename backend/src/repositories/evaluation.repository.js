@@ -420,6 +420,133 @@ class EvaluationRepository {
       managers: managerBreakdownRes.rows
     };
   }
+
+  /**
+   * Get HR Performance Analytics Trends (Year vs Review Cycles & Employee/Dept filters)
+   */
+  static async getHRPerformanceAnalytics(companyId, { mode = 'CYCLES', year, cycleLimit = 5, employeeId, department } = {}) {
+    // 1. Available Years dropdown options
+    const yearsSql = `
+      SELECT DISTINCT EXTRACT(YEAR FROM start_date)::int AS year 
+      FROM evaluation_cycles 
+      WHERE company_id = $1 
+      ORDER BY year DESC
+    `;
+    const yearsRes = await db.query(yearsSql, [companyId]);
+    let availableYears = yearsRes.rows.map(r => r.year);
+    if (availableYears.length === 0) {
+      availableYears = [new Date().getFullYear()];
+    }
+
+    // 2. Available Employees dropdown options
+    const empSql = `
+      SELECT id, full_name, email, department 
+      FROM users 
+      WHERE company_id = $1 AND is_active = TRUE 
+      ORDER BY full_name ASC
+    `;
+    const empRes = await db.query(empSql, [companyId]);
+    const employees = empRes.rows;
+
+    // 3. Fetch Cycles based on filter mode
+    let cycles = [];
+    if (mode === 'YEAR') {
+      const targetYear = parseInt(year) || availableYears[0] || new Date().getFullYear();
+      const cycleSql = `
+        SELECT * FROM evaluation_cycles
+        WHERE company_id = $1 AND EXTRACT(YEAR FROM start_date) = $2
+        ORDER BY start_date ASC
+      `;
+      const res = await db.query(cycleSql, [companyId, targetYear]);
+      cycles = res.rows;
+    } else {
+      const limit = parseInt(cycleLimit) || 5;
+      const cycleSql = `
+        SELECT * FROM (
+          SELECT * FROM evaluation_cycles
+          WHERE company_id = $1
+          ORDER BY start_date DESC
+          LIMIT $2
+        ) sub ORDER BY start_date ASC
+      `;
+      const res = await db.query(cycleSql, [companyId, limit]);
+      cycles = res.rows;
+    }
+
+    // 4. For each cycle, aggregate performance metrics & parameter breakdowns
+    const trendPoints = [];
+    for (const c of cycles) {
+      let queryParams = [companyId, c.id];
+      let filterConditions = '';
+      
+      if (employeeId && employeeId !== 'ALL') {
+        queryParams.push(employeeId);
+        filterConditions += ` AND e.employee_id = $${queryParams.length}`;
+      }
+
+      if (department && department !== 'ALL') {
+        queryParams.push(department);
+        filterConditions += ` AND u.department = $${queryParams.length}`;
+      }
+
+      const scoreSql = `
+        SELECT 
+          p.code as param_code,
+          p.name as param_name,
+          AVG(es.score)::numeric(10,2) as avg_param_score,
+          COUNT(DISTINCT e.id)::int as total_evaluations
+        FROM evaluations e
+        JOIN users u ON e.employee_id = u.id AND u.company_id = e.company_id
+        JOIN evaluation_scores es ON es.evaluation_id = e.id
+        JOIN evaluation_parameters p ON es.parameter_id = p.id
+        WHERE e.company_id = $1 AND e.cycle_id = $2 AND e.status = 'SUBMITTED' ${filterConditions}
+        GROUP BY p.code, p.name, p.display_order
+        ORDER BY p.display_order ASC
+      `;
+      const scoreRes = await db.query(scoreSql, queryParams);
+
+      const overallSql = `
+        SELECT 
+          AVG(eval_avg.avg_score)::numeric(10,2) as overall_avg_score,
+          COUNT(eval_avg.id)::int as submitted_count
+        FROM (
+          SELECT e.id, AVG(es.score) as avg_score
+          FROM evaluations e
+          JOIN users u ON e.employee_id = u.id AND u.company_id = e.company_id
+          JOIN evaluation_scores es ON es.evaluation_id = e.id
+          WHERE e.company_id = $1 AND e.cycle_id = $2 AND e.status = 'SUBMITTED' ${filterConditions}
+          GROUP BY e.id
+        ) eval_avg
+      `;
+      const overallRes = await db.query(overallSql, queryParams);
+
+      const paramScoresMap = {};
+      scoreRes.rows.forEach(r => {
+        paramScoresMap[r.param_code] = parseFloat(r.avg_param_score) || 0;
+      });
+
+      trendPoints.push({
+        cycleId: c.id,
+        cycleCode: c.cycle_code,
+        cycleName: c.name,
+        startDate: c.start_date,
+        endDate: c.end_date,
+        avgScore: parseFloat(overallRes.rows[0]?.overall_avg_score) || 0,
+        submittedCount: overallRes.rows[0]?.submitted_count || 0,
+        parameterScores: paramScoresMap
+      });
+    }
+
+    return {
+      mode,
+      selectedYear: parseInt(year) || availableYears[0],
+      selectedCycleLimit: parseInt(cycleLimit) || 5,
+      selectedEmployeeId: employeeId || 'ALL',
+      availableYears,
+      employees,
+      trendPoints
+    };
+  }
 }
 
 module.exports = EvaluationRepository;

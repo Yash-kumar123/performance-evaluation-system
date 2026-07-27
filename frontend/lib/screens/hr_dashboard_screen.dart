@@ -8,6 +8,7 @@ import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
+import '../core/widgets/hr_performance_chart_widget.dart';
 
 class HRDashboardScreen extends StatefulWidget {
   const HRDashboardScreen({super.key});
@@ -32,6 +33,7 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
     hrProvider.fetchDashboard(cycleId: _selectedFilterCycleId);
     hrProvider.fetchCycles();
     hrProvider.fetchUsers();
+    hrProvider.fetchPerformanceAnalytics();
   }
 
   void _showCreateCycleDialog(BuildContext context) {
@@ -436,6 +438,10 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                   ),
                   const SizedBox(height: 28),
 
+                  // ─── HR Performance Analytics Trends Section ───────────────
+                  _buildAnalyticsSection(context, hrProvider),
+                  const SizedBox(height: 28),
+
                   // Manager-Wise Submission Compliance Breakdown Table
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -533,6 +539,218 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsSection(BuildContext context, HRProvider hrProvider) {
+    final mode = hrProvider.analyticsMode; // 'CYCLES' | 'YEAR'
+    final availableYears = hrProvider.availableAnalyticsYears;
+    final employees = hrProvider.analyticsEmployees;
+    final trendPoints = hrProvider.analyticsTrendPoints;
+    final selectedYear = hrProvider.selectedAnalyticsYear;
+    final selectedCycleLimit = hrProvider.selectedAnalyticsCycleLimit;
+    final selectedEmployeeId = hrProvider.selectedAnalyticsEmployeeId;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Performance Trend Analytics',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      mode == 'YEAR'
+                          ? 'Showing cycles in year $selectedYear'
+                          : 'Showing last $selectedCycleLimit review cycles',
+                      style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
+                    ),
+                  ],
+                ),
+                Icon(Icons.analytics_rounded, color: AppTheme.primaryColor.withOpacity(0.6), size: 28),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // ── Toggle: By Year / By Review Cycles ──────────────────────────
+            Row(
+              children: [
+                const Text('View by:', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                const SizedBox(width: 12),
+                _analyticsToggleButton(
+                  label: 'Review Cycles',
+                  icon: Icons.loop_rounded,
+                  isActive: mode == 'CYCLES',
+                  onTap: () => hrProvider.fetchPerformanceAnalytics(mode: 'CYCLES'),
+                ),
+                const SizedBox(width: 8),
+                _analyticsToggleButton(
+                  label: 'Year',
+                  icon: Icons.calendar_today_rounded,
+                  isActive: mode == 'YEAR',
+                  onTap: () => hrProvider.fetchPerformanceAnalytics(mode: 'YEAR'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // ── Filter Controls Row ─────────────────────────────────────────
+            Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // Conditional: Year selector or Cycle count selector
+                if (mode == 'YEAR' && availableYears.isNotEmpty)
+                  SizedBox(
+                    width: 140,
+                    child: DropdownButtonFormField<int>(
+                      value: availableYears.contains(selectedYear) ? selectedYear : availableYears.first,
+                      isDense: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Year',
+                        prefixIcon: Icon(Icons.calendar_today_rounded, size: 16),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                      items: availableYears.map<DropdownMenuItem<int>>((y) {
+                        return DropdownMenuItem<int>(value: y, child: Text('$y'));
+                      }).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          hrProvider.fetchPerformanceAnalytics(mode: 'YEAR', year: val);
+                        }
+                      },
+                    ),
+                  )
+                else if (mode == 'CYCLES')
+                  SizedBox(
+                    width: 160,
+                    child: DropdownButtonFormField<int>(
+                      value: selectedCycleLimit,
+                      isDense: true,
+                      decoration: const InputDecoration(
+                        labelText: 'No. of Cycles',
+                        prefixIcon: Icon(Icons.loop_rounded, size: 16),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                      items: const [
+                        DropdownMenuItem<int>(value: 3, child: Text('Last 3 Cycles')),
+                        DropdownMenuItem<int>(value: 5, child: Text('Last 5 Cycles')),
+                        DropdownMenuItem<int>(value: 10, child: Text('Last 10 Cycles')),
+                        DropdownMenuItem<int>(value: 20, child: Text('Last 20 Cycles')),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          hrProvider.fetchPerformanceAnalytics(mode: 'CYCLES', cycleLimit: val);
+                        }
+                      },
+                    ),
+                  ),
+
+                // Employee Scope Filter
+                if (employees.isNotEmpty)
+                  SizedBox(
+                    width: 200,
+                    child: DropdownButtonFormField<String>(
+                      value: selectedEmployeeId,
+                      isDense: true,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Employee Scope',
+                        prefixIcon: Icon(Icons.person_outline_rounded, size: 16),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: 'ALL',
+                          child: Text('All Employees', overflow: TextOverflow.ellipsis),
+                        ),
+                        ...employees.map<DropdownMenuItem<String>>((emp) {
+                          final id = emp['id'] as String? ?? '';
+                          final name = emp['full_name'] as String? ?? 'Employee';
+                          return DropdownMenuItem<String>(
+                            value: id,
+                            child: Text(name, overflow: TextOverflow.ellipsis),
+                          );
+                        }),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          hrProvider.fetchPerformanceAnalytics(employeeId: val);
+                        }
+                      },
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // ── Chart Body ──────────────────────────────────────────────────
+            if (hrProvider.isLoadingAnalytics)
+              const SizedBox(
+                height: 160,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (hrProvider.errorAnalytics != null)
+              Container(
+                height: 100,
+                alignment: Alignment.center,
+                child: Text(
+                  hrProvider.errorAnalytics!,
+                  style: const TextStyle(color: AppTheme.errorColor, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              )
+            else
+              HRPerformanceChartWidget(trendPoints: trendPoints),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _analyticsToggleButton({
+    required String label,
+    required IconData icon,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isActive ? AppTheme.primaryColor : AppTheme.primaryColor.withOpacity(0.07),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: isActive ? AppTheme.primaryColor : AppTheme.dividerColor),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: isActive ? Colors.white : AppTheme.primaryColor),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isActive ? Colors.white : AppTheme.primaryColor,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

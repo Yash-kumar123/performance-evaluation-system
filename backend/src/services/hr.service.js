@@ -220,6 +220,20 @@ class HRService {
     const managers = await this.getManagerSubmissions(companyId, cycleId);
     return managers.filter(m => m.submission_status === 'COMPLETED');
   }
+
+  /**
+   * Get HR performance analytics trends (Year vs Cycles, Employee filter)
+   */
+  static async getPerformanceAnalytics(companyId, query = {}) {
+    const { mode, year, cycleLimit, employeeId, department } = query;
+    return await EvaluationRepository.getHRPerformanceAnalytics(companyId, {
+      mode,
+      year,
+      cycleLimit,
+      employeeId,
+      department
+    });
+  }
 }
 
 module.exports = HRService;

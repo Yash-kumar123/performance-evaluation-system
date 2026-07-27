@@ -41,4 +41,7 @@ router.get('/managers', HRController.getManagerSubmissions);
 router.get('/submissions/pending', HRController.getPendingSubmissions);
 router.get('/submissions/completed', HRController.getCompletedSubmissions);
 
+// HR Performance Analytics Trends Route (Year vs Review Cycles)
+router.get('/analytics/performance', HRController.getPerformanceAnalytics);
+
 module.exports = router;

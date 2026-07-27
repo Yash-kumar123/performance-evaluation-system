@@ -43,6 +43,16 @@ if (fs.existsSync(frontendBuildPath)) {
   app.use(express.static(frontendBuildPath));
 }
 
+// Root Endpoint - GET / (API Welcome & Status)
+app.get('/', (req, res) => {
+  return res.json({
+    status: 'online',
+    message: 'Performance Evaluation System API Server',
+    documentation: '/api/docs',
+    health: '/api/health'
+  });
+});
+
 // Health Endpoint - GET /api/health (Returns Application & DB Health Status)
 app.get('/api/health', async (req, res, next) => {
   try {
