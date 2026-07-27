@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Required: HTTPS API calls to Render backend -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
-        android:label="performance_evaluation_app"
+        android:label="Perf Eval System"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
