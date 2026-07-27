@@ -1,0 +1,47 @@
+# Render Blueprint (render.yaml) for Automated Deployment
+services:
+  # 1. Express API Backend & Hosted Flutter Web Application
+  - type: web
+    name: performance-evaluation-system
+    env: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 5000
+      - key: NODE_ENV
+        value: production
+      - key: DB_HOST
+        fromDatabase:
+          name: pes-postgres-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: pes-postgres-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: pes-postgres-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: pes-postgres-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: pes-postgres-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 1d
+
+databases:
+  # 2. Render Managed PostgreSQL Database
+  - name: pes-postgres-db
+    databaseName: performance_eval_db
+    user: pes_user
+    region: singapore
+    plan: free
