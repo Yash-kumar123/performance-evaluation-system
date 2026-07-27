@@ -103,7 +103,7 @@ class HRProvider with ChangeNotifier {
         'isActive': true,
       });
 
-      if (response.statusCode == 201 && response.data['success'] == true) {
+      if ((response.statusCode == 201 || response.statusCode == 200) && response.data['success'] == true) {
         await fetchDashboard();
         await fetchCycles();
         _isLoadingAction = false;
@@ -111,6 +111,75 @@ class HRProvider with ChangeNotifier {
         return true;
       } else {
         _errorAction = response.data['message'] ?? 'Failed to create review cycle.';
+        _isLoadingAction = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorAction = e.toString().replaceAll('Exception:', '').trim();
+      _isLoadingAction = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update Existing Review Cycle
+  Future<bool> updateCycle({
+    required String cycleId,
+    required String name,
+    required String startDate,
+    required String endDate,
+    bool isActive = true,
+  }) async {
+    _isLoadingAction = true;
+    _errorAction = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.put('/hr/cycles/$cycleId', data: {
+        'name': name,
+        'startDate': startDate,
+        'endDate': endDate,
+        'isActive': isActive,
+      });
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        await fetchDashboard();
+        await fetchCycles();
+        _isLoadingAction = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorAction = response.data['message'] ?? 'Failed to update review cycle.';
+        _isLoadingAction = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorAction = e.toString().replaceAll('Exception:', '').trim();
+      _isLoadingAction = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Delete Review Cycle
+  Future<bool> deleteCycle(String cycleId) async {
+    _isLoadingAction = true;
+    _errorAction = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.delete('/hr/cycles/$cycleId');
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        await fetchDashboard();
+        await fetchCycles();
+        _isLoadingAction = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorAction = response.data['message'] ?? 'Failed to delete review cycle.';
         _isLoadingAction = false;
         notifyListeners();
         return false;

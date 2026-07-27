@@ -15,7 +15,7 @@ class EvaluationRepository {
   }
 
   /**
-   * Find cycle by ID or code within tenant
+   * Find cycle by ID within tenant
    */
   static async findCycleById(cycleId, companyId) {
     const sql = `
@@ -27,7 +27,7 @@ class EvaluationRepository {
   }
 
   /**
-   * Create a new evaluation cycle (HR Feature - Date Wise Cycle Creation)
+   * Create or upsert a new evaluation cycle (HR Feature - Date Wise Cycle Creation)
    */
   static async createCycle({ companyId, name, cycleCode, startDate, endDate, isActive = true }) {
     const client = await db.getClient();
@@ -44,6 +44,8 @@ class EvaluationRepository {
       const sql = `
         INSERT INTO evaluation_cycles (company_id, name, cycle_code, start_date, end_date, is_active)
         VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (company_id, cycle_code) DO UPDATE 
+        SET name = EXCLUDED.name, start_date = EXCLUDED.start_date, end_date = EXCLUDED.end_date, is_active = EXCLUDED.is_active
         RETURNING *
       `;
       const res = await client.query(sql, [companyId, name, cycleCode, startDate, endDate, isActive]);
@@ -55,6 +57,53 @@ class EvaluationRepository {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Update an existing evaluation cycle (HR Feature)
+   */
+  static async updateCycle(cycleId, companyId, { name, startDate, endDate, isActive }) {
+    const client = await db.getClient();
+    try {
+      await client.query('BEGIN');
+      if (isActive) {
+        await client.query(
+          `UPDATE evaluation_cycles SET is_active = FALSE WHERE company_id = $1 AND id <> $2`,
+          [companyId, cycleId]
+        );
+      }
+
+      const sql = `
+        UPDATE evaluation_cycles
+        SET name = COALESCE($1, name),
+            start_date = COALESCE($2, start_date),
+            end_date = COALESCE($3, end_date),
+            is_active = COALESCE($4, is_active)
+        WHERE id = $5 AND company_id = $6
+        RETURNING *
+      `;
+      const res = await client.query(sql, [name, startDate, endDate, isActive, cycleId, companyId]);
+      await client.query('COMMIT');
+      return res.rows[0] || null;
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Delete an evaluation cycle (HR Feature)
+   */
+  static async deleteCycle(cycleId, companyId) {
+    const sql = `
+      DELETE FROM evaluation_cycles
+      WHERE id = $1 AND company_id = $2
+      RETURNING *
+    `;
+    const res = await db.query(sql, [cycleId, companyId]);
+    return res.rows[0] || null;
   }
 
   /**

@@ -30,100 +30,197 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
   void _showCreateCycleDialog(BuildContext context) {
     final nameController = TextEditingController(text: 'August 2026 Evaluation');
     final codeController = TextEditingController(text: '2026-08');
+    DateTime selectedStartDate = DateTime(2026, 8, 1);
+    DateTime selectedEndDate = DateTime(2026, 8, 31);
+    
     final startDateController = TextEditingController(text: '2026-08-01');
     final endDateController = TextEditingController(text: '2026-08-31');
+
+    String selectedManagerId = 'ALL';
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.calendar_month_rounded, color: AppTheme.primaryColor),
-            SizedBox(width: 8),
-            Text('Create Review Cycle'),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Specify the review cycle name, code, start date, and deadline for managers.',
-                  style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryColor),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: nameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Cycle Name',
-                    hintText: 'e.g. August 2026 Evaluation',
+      builder: (ctx) {
+        final hrProvider = Provider.of<HRProvider>(context, listen: false);
+        final managersList = hrProvider.managers;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.calendar_month_rounded, color: AppTheme.primaryColor),
+                  SizedBox(width: 8),
+                  Text('Create Review Cycle'),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Configure review period, assign manager scope, and set deadline.',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textSecondaryColor),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Cycle Name
+                      TextFormField(
+                        controller: nameController,
+                        decoration: const InputDecoration(
+                          labelText: 'Cycle Name',
+                          hintText: 'e.g. August 2026 Evaluation',
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Manager Scope Selection Dropdown
+                      DropdownButtonFormField<String>(
+                        value: selectedManagerId,
+                        decoration: const InputDecoration(
+                          labelText: 'Assigned Manager Scope',
+                          prefixIcon: Icon(Icons.supervisor_account_rounded, size: 20),
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: 'ALL',
+                            child: Text('All Managers (Company-Wide)', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          ...managersList.map<DropdownMenuItem<String>>((m) {
+                            final mId = (m['manager_id'] as String?) ?? '';
+                            final mName = (m['manager_name'] as String?) ?? 'Manager';
+                            final dept = (m['department'] as String?) ?? '';
+                            final val = mId.isNotEmpty ? mId : mName;
+                            return DropdownMenuItem<String>(
+                              value: val,
+                              child: Text('$mName ($dept)'),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setModalState(() {
+                              selectedManagerId = val;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Cycle Code (YYYY-MM)
+                      TextFormField(
+                        controller: codeController,
+                        decoration: const InputDecoration(
+                          labelText: 'Cycle Code (YYYY-MM)',
+                          hintText: '2026-08',
+                        ),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Start Date Picker Field
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedStartDate,
+                            firstDate: DateTime(2025),
+                            lastDate: DateTime(2030),
+                          );
+                          if (picked != null) {
+                            setModalState(() {
+                              selectedStartDate = picked;
+                              final monthStr = picked.month.toString().padLeft(2, '0');
+                              final dayStr = picked.day.toString().padLeft(2, '0');
+                              startDateController.text = '${picked.year}-$monthStr-$dayStr';
+                              codeController.text = '${picked.year}-$monthStr';
+                            });
+                          }
+                        },
+                        child: IgnorePointer(
+                          child: TextFormField(
+                            controller: startDateController,
+                            decoration: const InputDecoration(
+                              labelText: 'Start Date (Calendar Pick)',
+                              suffixIcon: Icon(Icons.calendar_today_rounded, size: 18),
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // End Date / Deadline Picker Field
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedEndDate,
+                            firstDate: DateTime(2025),
+                            lastDate: DateTime(2030),
+                          );
+                          if (picked != null) {
+                            setModalState(() {
+                              selectedEndDate = picked;
+                              final monthStr = picked.month.toString().padLeft(2, '0');
+                              final dayStr = picked.day.toString().padLeft(2, '0');
+                              endDateController.text = '${picked.year}-$monthStr-$dayStr';
+                            });
+                          }
+                        },
+                        child: IgnorePointer(
+                          child: TextFormField(
+                            controller: endDateController,
+                            decoration: const InputDecoration(
+                              labelText: 'End Date / Deadline (Calendar Pick)',
+                              suffixIcon: Icon(Icons.event_available_rounded, size: 18),
+                            ),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: codeController,
-                  decoration: const InputDecoration(
-                    labelText: 'Cycle Code (YYYY-MM)',
-                    hintText: '2026-08',
-                  ),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: startDateController,
-                  decoration: const InputDecoration(
-                    labelText: 'Start Date (YYYY-MM-DD)',
-                    hintText: '2026-08-01',
-                  ),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: endDateController,
-                  decoration: const InputDecoration(
-                    labelText: 'End Date / Deadline (YYYY-MM-DD)',
-                    hintText: '2026-08-31',
-                  ),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ElevatedButton(
+                  onPressed: () async {
+                    if (!formKey.currentState!.validate()) return;
+                    final hrProv = Provider.of<HRProvider>(context, listen: false);
+                    final success = await hrProv.createCycle(
+                      name: nameController.text.trim(),
+                      cycleCode: codeController.text.trim(),
+                      startDate: startDateController.text.trim(),
+                      endDate: endDateController.text.trim(),
+                    );
+                    if (!ctx.mounted) return;
+                    Navigator.pop(ctx);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          success ? 'Evaluation cycle created successfully!' : (hrProv.errorAction ?? 'Failed to create cycle.'),
+                        ),
+                        backgroundColor: success ? AppTheme.successColor : AppTheme.errorColor,
+                      ),
+                    );
+                  },
+                  child: const Text('Create Cycle'),
                 ),
               ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (!formKey.currentState!.validate()) return;
-              final hrProvider = Provider.of<HRProvider>(context, listen: false);
-              final success = await hrProvider.createCycle(
-                name: nameController.text.trim(),
-                cycleCode: codeController.text.trim(),
-                startDate: startDateController.text.trim(),
-                endDate: endDateController.text.trim(),
-              );
-              if (!ctx.mounted) return;
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    success ? 'Evaluation cycle created successfully!' : (hrProvider.errorAction ?? 'Failed to create cycle.'),
-                  ),
-                  backgroundColor: success ? AppTheme.successColor : AppTheme.errorColor,
-                ),
-              );
-            },
-            child: const Text('Create Cycle'),
-          ),
-        ],
-      ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -194,7 +291,7 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                               ),
                               ElevatedButton.icon(
                                 onPressed: () => _showCreateCycleDialog(context),
-                                icon: const Icon(Icons.add, size: 18),
+                                icon: const Icon(Icons.add_task_rounded, size: 18),
                                 label: const Text('New Cycle'),
                                 style: ElevatedButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

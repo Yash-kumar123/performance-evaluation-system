@@ -31,9 +31,9 @@ pool.on('error', (err) => {
 const query = (text, params) => pool.query(text, params);
 
 /**
- * Get a client from the pool for multi-query database transactions
+ * Get a client connection from the pool for multi-query database transactions
  */
-const getClient = () => pool.getClient();
+const getClient = () => pool.connect();
 
 module.exports = {
   pool,

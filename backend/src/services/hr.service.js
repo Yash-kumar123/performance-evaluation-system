@@ -34,7 +34,7 @@ class HRService {
   }
 
   /**
-   * Create new evaluation review cycle (Date Wise HR Feature)
+   * Create new evaluation review cycle (Date Wise HR Feature with upsert)
    */
   static async createCycle(companyId, payload) {
     const { name, cycleCode, startDate, endDate, isActive = true } = payload;
@@ -51,6 +51,30 @@ class HRService {
       endDate,
       isActive
     });
+  }
+
+  /**
+   * Update existing evaluation review cycle
+   */
+  static async updateCycle(companyId, cycleId, payload) {
+    const existing = await EvaluationRepository.findCycleById(cycleId, companyId);
+    if (!existing) {
+      throw new AppError('Evaluation cycle not found.', 404);
+    }
+
+    return await EvaluationRepository.updateCycle(cycleId, companyId, payload);
+  }
+
+  /**
+   * Delete evaluation review cycle
+   */
+  static async deleteCycle(companyId, cycleId) {
+    const existing = await EvaluationRepository.findCycleById(cycleId, companyId);
+    if (!existing) {
+      throw new AppError('Evaluation cycle not found.', 404);
+    }
+
+    return await EvaluationRepository.deleteCycle(cycleId, companyId);
   }
 
   /**

@@ -13,6 +13,12 @@ router.get('/dashboard', HRController.getDashboard);
 // POST /api/hr/cycles (Date-wise Cycle Creation)
 router.post('/cycles', HRController.createCycle);
 
+// PUT /api/hr/cycles/:id (Update Cycle)
+router.put('/cycles/:id', HRController.updateCycle);
+
+// DELETE /api/hr/cycles/:id (Delete Cycle)
+router.delete('/cycles/:id', HRController.deleteCycle);
+
 // GET /api/hr/cycles
 router.get('/cycles', HRController.getCycles);
 

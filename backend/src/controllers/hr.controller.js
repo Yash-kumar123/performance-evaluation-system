@@ -21,6 +21,24 @@ class HRController {
     }
   }
 
+  static async updateCycle(req, res, next) {
+    try {
+      const cycle = await HRService.updateCycle(req.tenantId, req.params.id, req.body);
+      return sendSuccess(res, 200, 'Evaluation cycle updated successfully', cycle);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteCycle(req, res, next) {
+    try {
+      const cycle = await HRService.deleteCycle(req.tenantId, req.params.id);
+      return sendSuccess(res, 200, 'Evaluation cycle deleted successfully', cycle);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getCycles(req, res, next) {
     try {
       const cycles = await HRService.getCycles(req.tenantId);
