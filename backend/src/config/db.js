@@ -2,11 +2,12 @@ const { Pool } = require('pg');
 const env = require('./env');
 
 // Configure PostgreSQL Connection Pool
+const useSsl = env.nodeEnv === 'production' || 
+               (env.dbUrl && !env.dbUrl.includes('localhost') && !env.dbUrl.includes('127.0.0.1'));
+
 const pool = new Pool({
   connectionString: env.dbUrl,
-  ssl: env.nodeEnv === 'production' || env.dbUrl?.includes('supabase')
-    ? { rejectUnauthorized: false }
-    : false,
+  ssl: useSsl ? { rejectUnauthorized: false } : false,
   max: 20, // Maximum connections in pool
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000
