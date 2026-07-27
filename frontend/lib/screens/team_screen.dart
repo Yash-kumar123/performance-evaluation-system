@@ -1,0 +1,277 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../core/config/app_theme.dart';
+import '../core/providers/manager_provider.dart';
+import '../core/widgets/custom_app_bar.dart';
+import '../core/widgets/app_drawer.dart';
+import '../core/widgets/loading_widget.dart';
+import '../core/widgets/custom_error_widget.dart';
+import '../core/widgets/empty_state_widget.dart';
+
+class TeamScreen extends StatefulWidget {
+  const TeamScreen({super.key});
+
+  @override
+  State<TeamScreen> createState() => _TeamScreenState();
+}
+
+class _TeamScreenState extends State<TeamScreen> {
+  final _searchController = TextEditingController();
+  String _selectedFilter = 'ALL';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
+  }
+
+  void _loadData() {
+    Provider.of<ManagerProvider>(context, listen: false).fetchTeamStatus();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'SUBMITTED':
+        return AppTheme.successColor;
+      case 'PENDING':
+        return AppTheme.warningColor;
+      default:
+        return AppTheme.textSecondaryColor;
+    }
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'SUBMITTED':
+        return 'Submitted';
+      case 'PENDING':
+        return 'Draft Saved';
+      default:
+        return 'Not Started';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mgrProvider = Provider.of<ManagerProvider>(context);
+
+    // Filter Logic
+    final query = _searchController.text.trim().toLowerCase();
+    final filteredTeam = mgrProvider.teamStatus.where((item) {
+      final name = (item['employee_name'] ?? '').toString().toLowerCase();
+      final title = (item['job_title'] ?? '').toString().toLowerCase();
+      final status = item['status'] ?? 'NOT_STARTED';
+
+      final matchesQuery = name.contains(query) || title.contains(query);
+      final matchesFilter = _selectedFilter == 'ALL' || status == _selectedFilter;
+
+      return matchesQuery && matchesFilter;
+    }).toList();
+
+    return Scaffold(
+      appBar: const CustomAppBar(title: 'My Direct Team'),
+      drawer: const AppDrawer(),
+      backgroundColor: AppTheme.backgroundColor,
+      body: Column(
+        children: [
+          // Search & Filter Bar Container
+          Container(
+            padding: const EdgeInsets.all(16.0),
+            color: Colors.white,
+            child: Column(
+              children: [
+                TextField(
+                  controller: _searchController,
+                  onChanged: (_) => setState(() {}),
+                  decoration: InputDecoration(
+                    hintText: 'Search direct reports by name or title...',
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded, size: 18),
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {});
+                            },
+                          )
+                        : null,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Text(
+                      'Filter Status: ',
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildFilterChip('ALL', 'All Reports'),
+                            const SizedBox(width: 8),
+                            _buildFilterChip('NOT_STARTED', 'Not Started'),
+                            const SizedBox(width: 8),
+                            _buildFilterChip('PENDING', 'Draft Saved'),
+                            const SizedBox(width: 8),
+                            _buildFilterChip('SUBMITTED', 'Submitted'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
+          // Direct Reports List
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () async => _loadData(),
+              child: Builder(
+                builder: (context) {
+                  if (mgrProvider.isLoadingTeam) {
+                    return const LoadingWidget(message: 'Loading direct reports roster...');
+                  }
+
+                  if (mgrProvider.errorTeam != null) {
+                    return CustomErrorWidget(
+                      message: mgrProvider.errorTeam!,
+                      onRetry: () => _loadData(),
+                    );
+                  }
+
+                  if (filteredTeam.isEmpty) {
+                    return const EmptyStateWidget(
+                      title: 'No Direct Reports Found',
+                      message: 'No employees matched your current search or filter criteria.',
+                      icon: Icons.person_search_rounded,
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16.0),
+                    itemCount: filteredTeam.length,
+                    itemBuilder: (context, index) {
+                      final emp = filteredTeam[index];
+                      final empId = emp['employee_id'] as String;
+                      final name = emp['employee_name'] ?? 'Employee';
+                      final title = emp['job_title'] ?? 'Staff Member';
+                      final status = emp['status'] ?? 'NOT_STARTED';
+                      final evalId = emp['evaluation_id'] as String?;
+
+                      final cycleId = mgrProvider.activeCycle?['id'] as String? ?? '';
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          leading: CircleAvatar(
+                            backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
+                            child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : 'E',
+                              style: const TextStyle(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            name,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                          subtitle: Text(title),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: _getStatusColor(status).withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  _getStatusLabel(status),
+                                  style: TextStyle(
+                                    color: _getStatusColor(status),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                status == 'SUBMITTED' ? 'View' : 'Evaluate',
+                                style: const TextStyle(
+                                  color: AppTheme.primaryColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          onTap: () {
+                            if (status == 'SUBMITTED' && evalId != null) {
+                              context.go('/evaluation/$evalId');
+                            } else {
+                              context.go(
+                                Uri(
+                                  path: '/manager/create-evaluation',
+                                  queryParameters: {
+                                    'employeeId': empId,
+                                    'employeeName': name,
+                                    'cycleId': cycleId,
+                                    if (evalId != null) 'evaluationId': evalId,
+                                  },
+                                ).toString(),
+                              );
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String value, String label) {
+    final isSelected = _selectedFilter == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      selectedColor: AppTheme.primaryColor,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : AppTheme.textPrimaryColor,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        fontSize: 12,
+      ),
+      onSelected: (selected) {
+        if (selected) {
+          setState(() {
+            _selectedFilter = value;
+          });
+        }
+      },
+    );
+  }
+}
