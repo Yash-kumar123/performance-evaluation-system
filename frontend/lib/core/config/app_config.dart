@@ -3,16 +3,21 @@ import 'package:flutter/foundation.dart';
 class AppConfig {
   static const String appName = 'Performance Evaluation Tool';
 
+  // Production Render deployment URL
+  static const String productionBaseUrl = 'https://performance-evaluation-system-gacb.onrender.com';
+
   // Dynamic Base URL for API Gateway:
-  // In Web builds (including Render deployment), dynamically targets current host domain + /api
+  // - Web builds: dynamically targets current host domain + /api (works on Render and localhost)
+  // - Native/Mobile builds: targets the live Render production deployment
   static String get apiBaseUrl {
     if (kIsWeb) {
-      final scheme = Uri.base.scheme.isNotEmpty ? Uri.base.scheme : 'http';
+      final scheme = Uri.base.scheme.isNotEmpty ? Uri.base.scheme : 'https';
       final host = Uri.base.host.isNotEmpty ? Uri.base.host : 'localhost';
       final portStr = (Uri.base.hasPort && Uri.base.port != 80 && Uri.base.port != 443) ? ':${Uri.base.port}' : '';
       return '$scheme://$host$portStr/api';
     }
-    return 'http://localhost:5000/api';
+    // Non-web (Android, iOS, Desktop): use live Render deployment
+    return '$productionBaseUrl/api';
   }
 
   static const String tokenKey = 'jwt_token';
