@@ -15,25 +15,36 @@ class EmployeeService {
   }
 
   /**
-   * Get current active cycle evaluation for logged-in employee
+   * Get cycle evaluation for logged-in employee (supports cycleId query filter)
    */
-  static async getCurrentEvaluation(employeeId, companyId) {
-    const activeCycle = await EvaluationRepository.getActiveCycle(companyId);
-    if (!activeCycle) {
+  static async getCurrentEvaluation(employeeId, companyId, cycleId = null) {
+    let targetCycle = null;
+    if (cycleId) {
+      targetCycle = await EvaluationRepository.findCycleById(cycleId, companyId);
+    }
+    if (!targetCycle) {
+      targetCycle = await EvaluationRepository.getActiveCycle(companyId);
+    }
+    if (!targetCycle) {
+      const cycles = await EvaluationRepository.getCycles(companyId);
+      targetCycle = cycles[0] || null;
+    }
+
+    if (!targetCycle) {
       return null;
     }
 
-    const evaluationHeader = await EvaluationRepository.findByEmployeeAndCycle(employeeId, activeCycle.id, companyId);
+    const evaluationHeader = await EvaluationRepository.findByEmployeeAndCycle(employeeId, targetCycle.id, companyId);
     if (!evaluationHeader) {
       return {
-        cycle: activeCycle,
+        cycle: targetCycle,
         evaluation: null
       };
     }
 
     const evaluationDetails = await EvaluationRepository.findByIdWithDetails(evaluationHeader.id, companyId);
     return {
-      cycle: activeCycle,
+      cycle: targetCycle,
       evaluation: evaluationDetails
     };
   }

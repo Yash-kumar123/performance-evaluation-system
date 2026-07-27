@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/auth_provider.dart';
 import '../core/providers/employee_provider.dart';
+import '../core/providers/hr_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
@@ -17,6 +19,8 @@ class EmployeeDashboardScreen extends StatefulWidget {
 }
 
 class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
+  String? _selectedCycleId;
+
   @override
   void initState() {
     super.initState();
@@ -26,9 +30,12 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
   }
 
   void _loadData() {
-    final provider = Provider.of<EmployeeProvider>(context, listen: false);
-    provider.fetchCurrentEvaluation();
-    provider.fetchScoreTrends();
+    final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+    final hrProvider = Provider.of<HRProvider>(context, listen: false);
+
+    hrProvider.fetchCycles();
+    empProvider.fetchCurrentEvaluation(cycleId: _selectedCycleId);
+    empProvider.fetchScoreTrends();
   }
 
   Color _getScoreColor(double score) {
@@ -42,9 +49,21 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
   Widget build(BuildContext context) {
     final user = Provider.of<AuthProvider>(context).user;
     final empProvider = Provider.of<EmployeeProvider>(context);
+    final hrProvider = Provider.of<HRProvider>(context);
+
+    final cycles = hrProvider.cyclesList;
+    final currentEval = empProvider.currentEvaluationData?['evaluation'];
+    final activeCycle = empProvider.currentEvaluationData?['cycle'];
+    final scores = (currentEval?['scores'] as List<dynamic>?) ?? [];
+
+    double avgScore = 0;
+    if (scores.isNotEmpty) {
+      final total = scores.fold<int>(0, (sum, item) => sum + ((item['score'] as int?) ?? 0));
+      avgScore = total / scores.length;
+    }
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Employee Portal'),
+      appBar: const CustomAppBar(title: 'My Performance Portal'),
       drawer: const AppDrawer(),
       backgroundColor: AppTheme.backgroundColor,
       body: RefreshIndicator(
@@ -57,21 +76,24 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Welcome Header
+              // Hero Executive Header Card
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
-                    colors: [AppTheme.primaryColor, AppTheme.primaryLight],
+                    colors: [
+                      AppTheme.primaryColor,
+                      AppTheme.primaryDark,
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.25),
-                      blurRadius: 10,
+                      color: AppTheme.primaryColor.withOpacity(0.3),
+                      blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
                   ],
@@ -82,11 +104,11 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                     Row(
                       children: [
                         CircleAvatar(
-                          radius: 26,
-                          backgroundColor: Colors.white.withOpacity(0.2),
+                          radius: 28,
+                          backgroundColor: Colors.white.withOpacity(0.25),
                           child: Text(
                             user?.fullName.isNotEmpty == true ? user!.fullName[0].toUpperCase() : 'E',
-                            style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -95,13 +117,13 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Welcome, ${user?.fullName ?? 'Employee'}',
-                                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                                user?.fullName ?? 'Employee Dashboard',
+                                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${user?.jobTitle ?? 'Team Member'} • ${user?.department ?? ''}',
-                                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13),
+                                '${user?.jobTitle ?? 'Staff Member'} • ${user?.department ?? 'General'}',
+                                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
                               ),
                               Text(
                                 user?.companyName ?? '',
@@ -115,38 +137,98 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // Quick Action Buttons
+              // Cycle Toggle Selector Bar
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.calendar_month_rounded, color: AppTheme.primaryColor, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Select Evaluation Review Period:',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: cycles.map((c) {
+                            final cId = c['id'] as String;
+                            final cName = c['name'] ?? 'Cycle';
+                            final cCode = c['cycle_code'] ?? '';
+                            final isSelected = (_selectedCycleId == null && (c['is_active'] == true || cId == activeCycle?['id'])) || _selectedCycleId == cId;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 8.0),
+                              child: ChoiceChip(
+                                label: Text('$cName ($cCode)'),
+                                selected: isSelected,
+                                selectedColor: AppTheme.primaryColor,
+                                labelStyle: TextStyle(
+                                  color: isSelected ? Colors.white : AppTheme.textPrimaryColor,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontSize: 13,
+                                ),
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      _selectedCycleId = cId;
+                                    });
+                                    empProvider.fetchCurrentEvaluation(cycleId: cId);
+                                  }
+                                },
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // KPI Stats Overview Cards
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.go('/history'),
-                      icon: const Icon(Icons.history_rounded, size: 18),
-                      label: const Text('History'),
+                    child: _buildMetricCard(
+                      title: 'Cycle Rating',
+                      value: avgScore > 0 ? '${avgScore.toStringAsFixed(1)} ★' : 'N/A',
+                      color: avgScore > 0 ? _getScoreColor(avgScore) : AppTheme.textSecondaryColor,
+                      icon: Icons.star_rounded,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.go('/profile'),
-                      icon: const Icon(Icons.person_outline_rounded, size: 18),
-                      label: const Text('Profile'),
+                    child: _buildMetricCard(
+                      title: 'Review Status',
+                      value: currentEval != null ? (currentEval['status'] == 'SUBMITTED' ? 'Completed' : 'Draft') : 'Pending',
+                      color: currentEval != null
+                          ? (currentEval['status'] == 'SUBMITTED' ? AppTheme.successColor : AppTheme.warningColor)
+                          : AppTheme.textSecondaryColor,
+                      icon: Icons.assignment_turned_in_rounded,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
 
-              // Section Title
+              // Current Monthly Evaluation Card
               Text(
-                'Current Monthly Feedback',
+                'Evaluation Feedback & Scores',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
 
-              // Current Evaluation Content
               if (empProvider.isLoadingCurrent)
                 const Card(
                   child: Padding(
@@ -157,10 +239,9 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
               else if (empProvider.errorCurrent != null)
                 CustomErrorWidget(
                   message: empProvider.errorCurrent!,
-                  onRetry: () => empProvider.fetchCurrentEvaluation(),
+                  onRetry: () => empProvider.fetchCurrentEvaluation(cycleId: _selectedCycleId),
                 )
-              else if (empProvider.currentEvaluationData == null ||
-                  empProvider.currentEvaluationData!['evaluation'] == null)
+              else if (currentEval == null)
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -168,13 +249,13 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                       children: [
                         const Icon(Icons.pending_actions_rounded, size: 48, color: AppTheme.warningColor),
                         const SizedBox(height: 12),
-                        const Text(
-                          'Evaluation Pending',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        Text(
+                          'No Evaluation Submitted for ${activeCycle?['name'] ?? 'Selected Cycle'}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         const SizedBox(height: 6),
-                        Text(
-                          'Your direct manager has not submitted feedback for the active cycle yet.',
+                        const Text(
+                          'Your direct manager has not finalized ratings for this review period yet.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
                         ),
@@ -182,15 +263,14 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                     ),
                   ),
                 )
-              else ...[
-                _buildCurrentEvaluationCard(context, empProvider.currentEvaluationData!['evaluation']),
-              ],
+              else
+                _buildCurrentEvaluationCard(context, currentEval),
 
               const SizedBox(height: 28),
 
-              // Parameter Score Trends Section
+              // Visual Performance Graph Section (fl_chart)
               Text(
-                'Parameter Performance Trends',
+                'Performance Growth Trend Chart',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
@@ -209,10 +289,41 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                     ),
                   ),
                 )
-              else
+              else ...[
+                _buildVisualPerformanceGraph(empProvider.scoreTrends),
+                const SizedBox(height: 20),
                 _buildScoreTrendsList(empProvider.scoreTrends),
+              ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetricCard({required String title, required String value, required Color color, required IconData icon}) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: color, size: 20),
+                const Spacer(),
+                Text(
+                  value,
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: color),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor),
+            ),
+          ],
         ),
       ),
     );
@@ -247,7 +358,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                     const SizedBox(height: 2),
                     Text(
                       'Evaluated by ${eval['manager_name'] ?? 'Manager'}',
-                      style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                      style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
                     ),
                   ],
                 ),
@@ -277,40 +388,56 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
             ),
             const Divider(height: 24),
 
-            // Scores Preview Grid
-            Text(
-              'Parameter Scores Summary',
+            // Scores Progress Bar View
+            const Text(
+              '5 Parameter Scores Breakdown:',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondaryColor),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Column(
               children: scores.map((item) {
                 final score = (item['score'] as int?) ?? 0;
+                final progress = score / 5.0;
+
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 10.0),
-                  child: Row(
+                  padding: const EdgeInsets.only(bottom: 14.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          item['parameter_name'] ?? 'Parameter',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            item['parameter_name'] ?? 'Parameter',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            '$score / 5 Stars',
+                            style: TextStyle(
+                              color: _getScoreColor(score.toDouble()),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 8,
+                          backgroundColor: AppTheme.borderSubtleColor,
+                          valueColor: AlwaysStoppedAnimation<Color>(_getScoreColor(score.toDouble())),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: _getScoreColor(score.toDouble()).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
+                      if (item['comment'] != null && (item['comment'] as String).isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'Feedback: "${item['comment']}"',
+                          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondaryColor, fontStyle: FontStyle.italic),
                         ),
-                        child: Text(
-                          '$score / 5',
-                          style: TextStyle(
-                            color: _getScoreColor(score.toDouble()),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      )
+                      ],
                     ],
                   ),
                 );
@@ -321,25 +448,165 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppTheme.backgroundColor,
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppTheme.primaryColor.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppTheme.primaryColor.withOpacity(0.2)),
                 ),
-                child: Text(
-                  'Manager Comment: "${eval['summary_comment']}"',
-                  style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textSecondaryColor, fontSize: 13),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Overall Manager Summary:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppTheme.primaryColor)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '"${eval['summary_comment']}"',
+                      style: const TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textPrimaryColor, fontSize: 13),
+                    ),
+                  ],
                 ),
               ),
             ],
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () => context.go('/evaluation/$evalId'),
                 icon: const Icon(Icons.visibility_rounded, size: 18),
-                label: const Text('View Full Score Sheet'),
+                label: const Text('View Official Score Sheet'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Visual Performance Line/Bar Chart (fl_chart)
+  Widget _buildVisualPerformanceGraph(List<dynamic> trends) {
+    // Extract unique cycle codes (e.g. 2026-05, 2026-06, 2026-07)
+    final Set<String> cycleCodesSet = {};
+    for (var p in trends) {
+      final history = (p['history'] as List<dynamic>?) ?? [];
+      for (var h in history) {
+        if (h['cycleCode'] != null) cycleCodesSet.add(h['cycleCode'] as String);
+      }
+    }
+    final cycleCodes = cycleCodesSet.toList()..sort();
+
+    if (cycleCodes.isEmpty) return const SizedBox.shrink();
+
+    // Compute average score per cycle code
+    final Map<String, double> cycleAvgScores = {};
+    for (var code in cycleCodes) {
+      int totalScore = 0;
+      int count = 0;
+      for (var p in trends) {
+        final history = (p['history'] as List<dynamic>?) ?? [];
+        for (var h in history) {
+          if (h['cycleCode'] == code) {
+            totalScore += (h['score'] as int?) ?? 0;
+            count++;
+          }
+        }
+      }
+      cycleAvgScores[code] = count > 0 ? (totalScore / count) : 0.0;
+    }
+
+    final spots = <FlSpot>[];
+    for (int i = 0; i < cycleCodes.length; i++) {
+      final code = cycleCodes[i];
+      final avg = cycleAvgScores[code] ?? 0.0;
+      spots.add(FlSpot(i.toDouble(), avg));
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.show_chart_rounded, color: AppTheme.primaryColor, size: 22),
+                SizedBox(width: 8),
+                Text(
+                  'Average Score Growth Progression',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Tracks overall score progression across monthly review cycles (May, June, July).',
+              style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 180,
+              child: LineChart(
+                LineChartData(
+                  minY: 1,
+                  maxY: 5,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    getDrawingHorizontalLine: (val) => FlLine(color: AppTheme.borderSubtleColor, strokeWidth: 1),
+                  ),
+                  titlesData: FlTitlesData(
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1,
+                        getTitlesWidget: (val, meta) => Text('${val.toInt()}★', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor)),
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (val, meta) {
+                          final idx = val.toInt();
+                          if (idx >= 0 && idx < cycleCodes.length) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 6.0),
+                              child: Text(
+                                cycleCodes[idx],
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryColor),
+                              ),
+                            );
+                          }
+                          return const Text('');
+                        },
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      color: AppTheme.primaryColor,
+                      barWidth: 3.5,
+                      isStrokeCapRound: true,
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                          radius: 5,
+                          color: AppTheme.primaryColor,
+                          strokeWidth: 2,
+                          strokeColor: Colors.white,
+                        ),
+                      ),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: AppTheme.primaryColor.withOpacity(0.12),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -373,26 +640,32 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                       final score = (item['score'] as int?) ?? 0;
                       return Container(
                         margin: const EdgeInsets.only(right: 12),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         decoration: BoxDecoration(
                           color: _getScoreColor(score.toDouble()).withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(color: _getScoreColor(score.toDouble()).withOpacity(0.3)),
                         ),
                         child: Column(
                           children: [
                             Text(
                               item['cycleCode'] ?? '',
-                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor),
+                              style: const TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
-                            Text(
-                              '$score Score',
-                              style: TextStyle(
-                                color: _getScoreColor(score.toDouble()),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
+                            Row(
+                              children: [
+                                const Icon(Icons.star_rounded, size: 14, color: AppTheme.warningColor),
+                                const SizedBox(width: 2),
+                                Text(
+                                  '$score.0',
+                                  style: TextStyle(
+                                    color: _getScoreColor(score.toDouble()),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

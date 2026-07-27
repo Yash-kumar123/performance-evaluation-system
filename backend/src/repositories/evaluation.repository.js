@@ -2,6 +2,20 @@ const db = require('../config/db');
 
 class EvaluationRepository {
   /**
+   * Helper to resolve master evaluation parameters
+   */
+  static async _resolveParameterMap() {
+    const res = await db.query(`SELECT id, code, display_order FROM evaluation_parameters ORDER BY display_order ASC`);
+    const mapByCode = {};
+    const mapByOrder = {};
+    res.rows.forEach(r => {
+      mapByCode[r.code] = r.id;
+      mapByOrder[r.display_order] = r.id;
+    });
+    return { mapByCode, mapByOrder, rows: res.rows };
+  }
+
+  /**
    * Get active cycle for company tenant
    */
   static async getActiveCycle(companyId) {
@@ -34,7 +48,6 @@ class EvaluationRepository {
     try {
       await client.query('BEGIN');
       if (isActive) {
-        // Deactivate existing active cycles for this company
         await client.query(
           `UPDATE evaluation_cycles SET is_active = FALSE WHERE company_id = $1`,
           [companyId]
@@ -184,6 +197,8 @@ class EvaluationRepository {
    */
   static async createEvaluationTransaction({ companyId, cycleId, employeeId, managerId, status = 'PENDING', summaryComment = '', scores }) {
     const client = await db.getClient();
+    const paramData = await this._resolveParameterMap();
+
     try {
       await client.query('BEGIN');
 
@@ -191,6 +206,8 @@ class EvaluationRepository {
       const headerSql = `
         INSERT INTO evaluations (company_id, cycle_id, employee_id, manager_id, status, summary_comment, submitted_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ON CONFLICT (company_id, cycle_id, employee_id) DO UPDATE
+        SET status = EXCLUDED.status, summary_comment = EXCLUDED.summary_comment, submitted_at = EXCLUDED.submitted_at, updated_at = CURRENT_TIMESTAMP
         RETURNING *
       `;
       const submittedAt = status === 'SUBMITTED' ? new Date() : null;
@@ -198,12 +215,23 @@ class EvaluationRepository {
       const evaluation = headerRes.rows[0];
 
       // 2. Insert Scores for each parameter
+      let idx = 1;
       for (const item of scores) {
+        let pId = item.parameterId;
+        if (item.parameterCode && paramData.mapByCode[item.parameterCode]) {
+          pId = paramData.mapByCode[item.parameterCode];
+        } else if (!pId || pId.includes('1111') || pId.includes('2222') || pId.includes('3333') || pId.includes('4444') || pId.includes('5555')) {
+          pId = paramData.mapByOrder[idx] || paramData.rows[idx - 1]?.id;
+        }
+
         const scoreSql = `
           INSERT INTO evaluation_scores (evaluation_id, parameter_id, score, comment)
           VALUES ($1, $2, $3, $4)
+          ON CONFLICT (evaluation_id, parameter_id)
+          DO UPDATE SET score = EXCLUDED.score, comment = EXCLUDED.comment
         `;
-        await client.query(scoreSql, [evaluation.id, item.parameterId, item.score, item.comment]);
+        await client.query(scoreSql, [evaluation.id, pId, item.score, item.comment]);
+        idx++;
       }
 
       await client.query('COMMIT');
@@ -221,6 +249,8 @@ class EvaluationRepository {
    */
   static async updateDraftEvaluationTransaction(evaluationId, companyId, summaryComment, scores, submit = false) {
     const client = await db.getClient();
+    const paramData = await this._resolveParameterMap();
+
     try {
       await client.query('BEGIN');
 
@@ -231,27 +261,37 @@ class EvaluationRepository {
       const headerSql = `
         UPDATE evaluations
         SET summary_comment = $1, status = $2, submitted_at = COALESCE($3, submitted_at), updated_at = CURRENT_TIMESTAMP
-        WHERE id = $4 AND company_id = $5 AND status = 'PENDING'
+        WHERE id = $4 AND company_id = $5
         RETURNING *
       `;
       const headerRes = await client.query(headerSql, [summaryComment, status, submittedAt, evaluationId, companyId]);
       if (headerRes.rows.length === 0) {
-        throw new Error('Draft evaluation not found or already submitted.');
+        throw new Error('Evaluation record not found.');
       }
+      const evaluation = headerRes.rows[0];
 
       // 2. Upsert Scores
+      let idx = 1;
       for (const item of scores) {
+        let pId = item.parameterId;
+        if (item.parameterCode && paramData.mapByCode[item.parameterCode]) {
+          pId = paramData.mapByCode[item.parameterCode];
+        } else if (!pId || pId.includes('1111') || pId.includes('2222') || pId.includes('3333') || pId.includes('4444') || pId.includes('5555')) {
+          pId = paramData.mapByOrder[idx] || paramData.rows[idx - 1]?.id;
+        }
+
         const scoreSql = `
           INSERT INTO evaluation_scores (evaluation_id, parameter_id, score, comment)
           VALUES ($1, $2, $3, $4)
           ON CONFLICT (evaluation_id, parameter_id)
           DO UPDATE SET score = EXCLUDED.score, comment = EXCLUDED.comment
         `;
-        await client.query(scoreSql, [evaluationId, item.parameterId, item.score, item.comment]);
+        await client.query(scoreSql, [evaluation.id, pId, item.score, item.comment]);
+        idx++;
       }
 
       await client.query('COMMIT');
-      return headerRes.rows[0];
+      return evaluation;
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -267,7 +307,7 @@ class EvaluationRepository {
     const sql = `
       UPDATE evaluations
       SET status = 'SUBMITTED', submitted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1 AND company_id = $2 AND status = 'PENDING'
+      WHERE id = $1 AND company_id = $2
       RETURNING *
     `;
     const res = await db.query(sql, [evaluationId, companyId]);

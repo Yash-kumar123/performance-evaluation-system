@@ -13,7 +13,8 @@ class EmployeeController {
 
   static async getCurrentEvaluation(req, res, next) {
     try {
-      const data = await EmployeeService.getCurrentEvaluation(req.user.id, req.tenantId);
+      const cycleId = req.query.cycleId || null;
+      const data = await EmployeeService.getCurrentEvaluation(req.user.id, req.tenantId, cycleId);
       return sendSuccess(res, 200, 'Current evaluation retrieved', data);
     } catch (error) {
       next(error);

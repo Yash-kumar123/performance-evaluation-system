@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/employee_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
@@ -20,7 +21,9 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<EmployeeProvider>(context, listen: false).fetchEvaluationDetails(widget.evaluationId);
+      final empProvider = Provider.of<EmployeeProvider>(context, listen: false);
+      empProvider.fetchEvaluationDetails(widget.evaluationId);
+      empProvider.fetchScoreTrends();
     });
   }
 
@@ -38,7 +41,7 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
 
     return Scaffold(
       appBar: const CustomAppBar(
-        title: 'Evaluation Details',
+        title: 'Evaluation Score Sheet',
         showBackButton: true,
         showDrawerButton: false,
       ),
@@ -107,7 +110,7 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
                           children: [
                             const Icon(Icons.person_outline_rounded, size: 18, color: AppTheme.primaryColor),
                             const SizedBox(width: 8),
-                            Text('Employee: $employeeName', style: const TextStyle(fontSize: 14)),
+                            Text('Employee: $employeeName', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -149,6 +152,17 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
+
+                // Employee Growth Progression Graph Section
+                if (empProvider.scoreTrends.isNotEmpty) ...[
+                  Text(
+                    'Employee Growth & Improvement Graph',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildEmployeeGrowthGraph(empProvider.scoreTrends),
+                  const SizedBox(height: 24),
+                ],
 
                 // 5 Fixed Parameter Score Cards Section
                 Text(
@@ -242,6 +256,135 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildEmployeeGrowthGraph(List<dynamic> trends) {
+    final Set<String> cycleCodesSet = {};
+    for (var p in trends) {
+      final history = (p['history'] as List<dynamic>?) ?? [];
+      for (var h in history) {
+        if (h['cycleCode'] != null) cycleCodesSet.add(h['cycleCode'] as String);
+      }
+    }
+    final cycleCodes = cycleCodesSet.toList()..sort();
+
+    if (cycleCodes.isEmpty) return const SizedBox.shrink();
+
+    final Map<String, double> cycleAvgScores = {};
+    for (var code in cycleCodes) {
+      int totalScore = 0;
+      int count = 0;
+      for (var p in trends) {
+        final history = (p['history'] as List<dynamic>?) ?? [];
+        for (var h in history) {
+          if (h['cycleCode'] == code) {
+            totalScore += (h['score'] as int?) ?? 0;
+            count++;
+          }
+        }
+      }
+      cycleAvgScores[code] = count > 0 ? (totalScore / count) : 0.0;
+    }
+
+    final spots = <FlSpot>[];
+    for (int i = 0; i < cycleCodes.length; i++) {
+      final code = cycleCodes[i];
+      final avg = cycleAvgScores[code] ?? 0.0;
+      spots.add(FlSpot(i.toDouble(), avg));
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.trending_up_rounded, color: AppTheme.successColor, size: 22),
+                SizedBox(width: 8),
+                Text(
+                  'Historical Performance Improvement Trend',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Assesses overall score growth across May, June, and July cycles.',
+              style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 12),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              height: 180,
+              child: LineChart(
+                LineChartData(
+                  minY: 1,
+                  maxY: 5,
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    getDrawingHorizontalLine: (val) => FlLine(color: AppTheme.borderSubtleColor, strokeWidth: 1),
+                  ),
+                  titlesData: FlTitlesData(
+                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        interval: 1,
+                        getTitlesWidget: (val, meta) => Text('${val.toInt()}★', style: const TextStyle(fontSize: 11, color: AppTheme.textSecondaryColor)),
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        getTitlesWidget: (val, meta) {
+                          final idx = val.toInt();
+                          if (idx >= 0 && idx < cycleCodes.length) {
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 6.0),
+                              child: Text(
+                                cycleCodes[idx],
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryColor),
+                              ),
+                            );
+                          }
+                          return const Text('');
+                        },
+                      ),
+                    ),
+                  ),
+                  borderData: FlBorderData(show: false),
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: spots,
+                      isCurved: true,
+                      color: AppTheme.successColor,
+                      barWidth: 3.5,
+                      isStrokeCapRound: true,
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                          radius: 5,
+                          color: AppTheme.successColor,
+                          strokeWidth: 2,
+                          strokeColor: Colors.white,
+                        ),
+                      ),
+                      belowBarData: BarAreaData(
+                        show: true,
+                        color: AppTheme.successColor.withOpacity(0.12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

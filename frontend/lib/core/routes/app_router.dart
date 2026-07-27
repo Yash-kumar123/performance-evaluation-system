@@ -11,6 +11,7 @@ import '../../screens/managers_progress_screen.dart';
 import '../../screens/pending_reviews_screen.dart';
 import '../../screens/completed_reviews_screen.dart';
 import '../../screens/hr_teams_screen.dart';
+import '../../screens/hr_project_teams_screen.dart';
 import '../../screens/profile_screen.dart';
 import '../../screens/evaluation_details_screen.dart';
 import '../../screens/history_screen.dart';
@@ -76,6 +77,11 @@ class AppRouter {
         path: '/hr/teams',
         name: 'hr_teams',
         builder: (context, state) => const HRTeamsScreen(),
+      ),
+      GoRoute(
+        path: '/hr/project-teams',
+        name: 'hr_project_teams',
+        builder: (context, state) => const HRProjectTeamsScreen(),
       ),
       GoRoute(
         path: '/hr/managers',

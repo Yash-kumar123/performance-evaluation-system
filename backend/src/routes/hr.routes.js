@@ -10,6 +10,12 @@ router.use(authenticateJWT, authorizeRoles('HR'));
 // GET /api/hr/dashboard
 router.get('/dashboard', HRController.getDashboard);
 
+// HR Project Teams Management Routes
+router.get('/project-teams', HRController.getProjectTeams);
+router.post('/project-teams', HRController.createProjectTeam);
+router.put('/project-teams/:id', HRController.updateProjectTeam);
+router.delete('/project-teams/:id', HRController.deleteProjectTeam);
+
 // HR Team & Users Management Routes
 router.get('/users', HRController.getAllUsers);
 router.post('/users', HRController.createUser);

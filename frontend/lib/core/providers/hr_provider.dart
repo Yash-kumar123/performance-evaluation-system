@@ -7,9 +7,12 @@ class HRProvider with ChangeNotifier {
   bool _isLoadingDashboard = false;
   bool _isLoadingAction = false;
   bool _isLoadingUsers = false;
+  bool _isLoadingProjectTeams = false;
+
   String? _errorDashboard;
   String? _errorAction;
   String? _errorUsers;
+  String? _errorProjectTeams;
 
   Map<String, dynamic>? _cycle;
   Map<String, dynamic>? _metrics;
@@ -18,13 +21,17 @@ class HRProvider with ChangeNotifier {
   List<dynamic> _completedManagers = [];
   List<dynamic> _cyclesList = [];
   List<dynamic> _usersList = [];
+  List<dynamic> _projectTeamsList = [];
 
   bool get isLoadingDashboard => _isLoadingDashboard;
   bool get isLoadingAction => _isLoadingAction;
   bool get isLoadingUsers => _isLoadingUsers;
+  bool get isLoadingProjectTeams => _isLoadingProjectTeams;
+
   String? get errorDashboard => _errorDashboard;
   String? get errorAction => _errorAction;
   String? get errorUsers => _errorUsers;
+  String? get errorProjectTeams => _errorProjectTeams;
 
   Map<String, dynamic>? get cycle => _cycle;
   Map<String, dynamic>? get metrics => _metrics;
@@ -33,6 +40,7 @@ class HRProvider with ChangeNotifier {
   List<dynamic> get completedManagers => _completedManagers;
   List<dynamic> get cyclesList => _cyclesList;
   List<dynamic> get usersList => _usersList;
+  List<dynamic> get projectTeamsList => _projectTeamsList;
 
   // Calculated HR Metrics
   int get totalEmployees => _metrics?['totalEmployees'] ?? 0;
@@ -75,6 +83,135 @@ class HRProvider with ChangeNotifier {
     } finally {
       _isLoadingDashboard = false;
       notifyListeners();
+    }
+  }
+
+  /// Fetch All Project Teams (HR Feature)
+  Future<void> fetchProjectTeams() async {
+    _isLoadingProjectTeams = true;
+    _errorProjectTeams = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.get('/hr/project-teams');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        _projectTeamsList = response.data['data'] ?? [];
+      } else {
+        _errorProjectTeams = response.data['message'] ?? 'Failed to load project teams.';
+      }
+    } catch (e) {
+      _errorProjectTeams = e.toString().replaceAll('Exception:', '').trim();
+    } finally {
+      _isLoadingProjectTeams = false;
+      notifyListeners();
+    }
+  }
+
+  /// Create New Project Team (HR Feature)
+  Future<bool> createProjectTeam({
+    required String name,
+    String? code,
+    String? description,
+    String? leadManagerId,
+    List<String>? memberIds,
+  }) async {
+    _isLoadingAction = true;
+    _errorAction = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.post('/hr/project-teams', data: {
+        'name': name,
+        'code': code ?? '',
+        'description': description ?? '',
+        'leadManagerId': leadManagerId,
+        'memberIds': memberIds ?? [],
+      });
+
+      if (response.statusCode == 201 && response.data['success'] == true) {
+        await fetchProjectTeams();
+        _isLoadingAction = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorAction = response.data['message'] ?? 'Failed to create project team.';
+        _isLoadingAction = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorAction = e.toString().replaceAll('Exception:', '').trim();
+      _isLoadingAction = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update Project Team (HR Feature)
+  Future<bool> updateProjectTeam({
+    required String teamId,
+    required String name,
+    String? code,
+    String? description,
+    String? leadManagerId,
+    List<String>? memberIds,
+  }) async {
+    _isLoadingAction = true;
+    _errorAction = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.put('/hr/project-teams/$teamId', data: {
+        'name': name,
+        'code': code ?? '',
+        'description': description ?? '',
+        'leadManagerId': leadManagerId,
+        'memberIds': memberIds ?? [],
+      });
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        await fetchProjectTeams();
+        _isLoadingAction = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorAction = response.data['message'] ?? 'Failed to update project team.';
+        _isLoadingAction = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorAction = e.toString().replaceAll('Exception:', '').trim();
+      _isLoadingAction = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Delete Project Team (HR Feature)
+  Future<bool> deleteProjectTeam(String teamId) async {
+    _isLoadingAction = true;
+    _errorAction = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.delete('/hr/project-teams/$teamId');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        await fetchProjectTeams();
+        _isLoadingAction = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorAction = response.data['message'] ?? 'Failed to delete project team.';
+        _isLoadingAction = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorAction = e.toString().replaceAll('Exception:', '').trim();
+      _isLoadingAction = false;
+      notifyListeners();
+      return false;
     }
   }
 

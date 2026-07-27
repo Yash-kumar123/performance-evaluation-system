@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const EvaluationRepository = require('../repositories/evaluation.repository');
 const UserRepository = require('../repositories/user.repository');
+const ProjectTeamRepository = require('../repositories/project_team.repository');
 const AppError = require('../utils/AppError');
 
 class HRService {
@@ -32,6 +33,34 @@ class HRService {
       cycle,
       metrics
     };
+  }
+
+  // --- Project Teams Management ---
+  static async getProjectTeams(companyId) {
+    return await ProjectTeamRepository.getTeams(companyId);
+  }
+
+  static async createProjectTeam(companyId, payload) {
+    const { name, code, description, leadManagerId, memberIds } = payload;
+    if (!name) {
+      throw new AppError('Project Team Name is required.', 400);
+    }
+    return await ProjectTeamRepository.createTeam({
+      companyId,
+      name,
+      code,
+      description,
+      leadManagerId,
+      memberIds
+    });
+  }
+
+  static async updateProjectTeam(companyId, teamId, payload) {
+    return await ProjectTeamRepository.updateTeam(teamId, companyId, payload);
+  }
+
+  static async deleteProjectTeam(companyId, teamId) {
+    return await ProjectTeamRepository.deleteTeam(teamId, companyId);
   }
 
   /**

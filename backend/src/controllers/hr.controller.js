@@ -12,6 +12,43 @@ class HRController {
     }
   }
 
+  // --- Project Teams Management ---
+  static async getProjectTeams(req, res, next) {
+    try {
+      const teams = await HRService.getProjectTeams(req.tenantId);
+      return sendSuccess(res, 200, 'Project teams retrieved successfully', teams);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createProjectTeam(req, res, next) {
+    try {
+      const team = await HRService.createProjectTeam(req.tenantId, req.body);
+      return sendSuccess(res, 201, 'Project team created successfully', team);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateProjectTeam(req, res, next) {
+    try {
+      const team = await HRService.updateProjectTeam(req.tenantId, req.params.id, req.body);
+      return sendSuccess(res, 200, 'Project team updated successfully', team);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteProjectTeam(req, res, next) {
+    try {
+      const team = await HRService.deleteProjectTeam(req.tenantId, req.params.id);
+      return sendSuccess(res, 200, 'Project team deleted successfully', team);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async createCycle(req, res, next) {
     try {
       const cycle = await HRService.createCycle(req.tenantId, req.body);

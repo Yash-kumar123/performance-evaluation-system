@@ -82,15 +82,24 @@ class AppDrawer extends StatelessWidget {
               }
             },
           ),
-          if (authProvider.isHR)
+          if (authProvider.isHR) ...[
             ListTile(
               leading: const Icon(Icons.groups_rounded, color: AppTheme.primaryColor),
-              title: const Text('Teams & Members'),
+              title: const Text('Teams Hierarchy'),
               onTap: () {
                 Navigator.pop(context);
                 context.go('/hr/teams');
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.account_tree_rounded, color: AppTheme.primaryColor),
+              title: const Text('Project Teams'),
+              onTap: () {
+                Navigator.pop(context);
+                context.go('/hr/project-teams');
+              },
+            ),
+          ],
           ListTile(
             leading: const Icon(Icons.calendar_month_rounded, color: AppTheme.primaryColor),
             title: const Text('Review Cycles'),

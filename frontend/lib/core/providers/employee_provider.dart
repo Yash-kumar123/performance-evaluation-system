@@ -36,18 +36,20 @@ class EmployeeProvider with ChangeNotifier {
   List<dynamic> get scoreTrends => _scoreTrends;
   Map<String, dynamic>? get selectedEvaluationDetails => _selectedEvaluationDetails;
 
-  /// Fetch Current Month's Evaluation
-  Future<void> fetchCurrentEvaluation() async {
+  /// Fetch Month's Evaluation (supports cycleId filter)
+  Future<void> fetchCurrentEvaluation({String? cycleId}) async {
     _isLoadingCurrent = true;
     _errorCurrent = null;
     notifyListeners();
 
     try {
-      final response = await _apiClient.get('/employees/evaluations/current');
+      final response = await _apiClient.get('/employees/evaluations/current', queryParameters: {
+        if (cycleId != null) 'cycleId': cycleId,
+      });
       if (response.statusCode == 200 && response.data['success'] == true) {
         _currentEvaluationData = response.data['data'];
       } else {
-        _errorCurrent = response.data['message'] ?? 'Failed to load current evaluation.';
+        _errorCurrent = response.data['message'] ?? 'Failed to load evaluation.';
       }
     } catch (e) {
       _errorCurrent = e.toString().replaceAll('Exception:', '').trim();

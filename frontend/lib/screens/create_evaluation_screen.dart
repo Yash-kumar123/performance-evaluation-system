@@ -65,13 +65,10 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
 
     final mgrProvider = Provider.of<ManagerProvider>(context, listen: false);
 
-    // Hardcode Parameter UUID mappings matching backend seed / system definitions
-    // (Or dynamic parameter mappings)
-    // Parameter UUID Map matching database parameters
     final payloadScores = AppConfig.fixedParameters.map((param) {
       final code = param['code']!;
       return {
-        // Map param code to standard parameter order
+        'parameterCode': code,
         'parameterId': _getParameterIdForCode(code),
         'score': _scores[code] ?? 4,
         'comment': _commentControllers[code]!.text.trim(),
@@ -107,7 +104,6 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
     }
   }
 
-  // Helper matching seed parameter IDs or fallback mock UUIDs
   String _getParameterIdForCode(String code) {
     switch (code) {
       case 'WORK_QUALITY':

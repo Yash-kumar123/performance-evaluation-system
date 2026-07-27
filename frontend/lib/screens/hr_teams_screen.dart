@@ -18,6 +18,8 @@ class HRTeamsScreen extends StatefulWidget {
 class _HRTeamsScreenState extends State<HRTeamsScreen> {
   final _searchController = TextEditingController();
   String _selectedRoleFilter = 'ALL';
+  String _selectedManagerId = 'ALL';
+  bool _groupByManagerView = true; // Accordion hierarchy view by default
 
   @override
   void initState() {
@@ -320,22 +322,36 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
     final hrProvider = Provider.of<HRProvider>(context);
 
     final query = _searchController.text.trim().toLowerCase();
+
+    // 1. Filter Users
     final filteredUsers = hrProvider.usersList.where((u) {
       final name = (u['full_name'] ?? '').toString().toLowerCase();
       final email = (u['email'] ?? '').toString().toLowerCase();
       final title = (u['job_title'] ?? '').toString().toLowerCase();
       final dept = (u['department'] ?? '').toString().toLowerCase();
       final role = u['role'] ?? 'EMPLOYEE';
+      final managerId = u['manager_id'] as String?;
 
       final matchesQuery = name.contains(query) || email.contains(query) || title.contains(query) || dept.contains(query);
       final matchesRole = _selectedRoleFilter == 'ALL' || role == _selectedRoleFilter;
+      final matchesManager = _selectedManagerId == 'ALL' || managerId == _selectedManagerId || u['id'] == _selectedManagerId;
 
-      return matchesQuery && matchesRole;
+      return matchesQuery && matchesRole && matchesManager;
     }).toList();
+
+    // Extract list of managers for dropdown filter
+    final managersList = hrProvider.usersList.where((u) => u['role'] == 'MANAGER' || u['role'] == 'HR').toList();
+
+    // Grouping by Manager
+    final Map<String, List<dynamic>> managerGroupMap = {};
+    for (var u in filteredUsers) {
+      final mId = (u['manager_id'] as String?) ?? 'UNASSIGNED';
+      managerGroupMap.putIfAbsent(mId, () => []).add(u);
+    }
 
     return Scaffold(
       appBar: CustomAppBar(
-        title: 'Teams & Members Management',
+        title: 'Teams & Members Hierarchy',
         actions: [
           IconButton(
             icon: const Icon(Icons.person_add_alt_1_rounded),
@@ -348,7 +364,7 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
       backgroundColor: AppTheme.backgroundColor,
       body: Column(
         children: [
-          // Filter Bar
+          // Filter & View Controller Bar
           Container(
             padding: const EdgeInsets.all(16.0),
             color: Colors.white,
@@ -358,53 +374,110 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
                   controller: _searchController,
                   onChanged: (_) => setState(() {}),
                   decoration: const InputDecoration(
-                    hintText: 'Search members by name, email, department...',
+                    hintText: 'Search members by name, title, department...',
                     prefixIcon: Icon(Icons.search_rounded, size: 20),
                   ),
                 ),
                 const SizedBox(height: 12),
+
+                // Manager Filter Dropdown & View Mode Switcher
                 Row(
                   children: [
-                    const Text('Role Filter: ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('All Members'),
-                      selected: _selectedRoleFilter == 'ALL',
-                      onSelected: (s) {
-                        if (s) setState(() => _selectedRoleFilter = 'ALL');
-                      },
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedManagerId,
+                        decoration: const InputDecoration(
+                          labelText: 'Filter by Manager Team Dropdown',
+                          prefixIcon: Icon(Icons.supervisor_account_rounded, size: 18),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: 'ALL',
+                            child: Text('All Manager Teams', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                          ...managersList.map<DropdownMenuItem<String>>((m) {
+                            final mId = m['id'] as String;
+                            final mName = m['full_name'] as String? ?? 'Manager';
+                            final dept = m['department'] as String? ?? '';
+                            return DropdownMenuItem<String>(
+                              value: mId,
+                              child: Text('$mName ($dept team)'),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setState(() => _selectedManagerId = val);
+                          }
+                        },
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('Managers'),
-                      selected: _selectedRoleFilter == 'MANAGER',
-                      onSelected: (s) {
-                        if (s) setState(() => _selectedRoleFilter = 'MANAGER');
+                    const SizedBox(width: 12),
+
+                    // View Mode Toggle (Accordion vs Flat Directory)
+                    IconButton.filledTonal(
+                      onPressed: () {
+                        setState(() {
+                          _groupByManagerView = !_groupByManagerView;
+                        });
                       },
-                    ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('Employees'),
-                      selected: _selectedRoleFilter == 'EMPLOYEE',
-                      onSelected: (s) {
-                        if (s) setState(() => _selectedRoleFilter = 'EMPLOYEE');
-                      },
+                      icon: Icon(
+                        _groupByManagerView ? Icons.account_tree_rounded : Icons.list_alt_rounded,
+                        color: AppTheme.primaryColor,
+                      ),
+                      tooltip: _groupByManagerView ? 'Switch to Flat Directory' : 'Switch to Manager Accordion Tree',
                     ),
                   ],
+                ),
+                const SizedBox(height: 8),
+
+                // Role Filter Chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      const Text('Role Filter: ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('All Roles'),
+                        selected: _selectedRoleFilter == 'ALL',
+                        onSelected: (s) {
+                          if (s) setState(() => _selectedRoleFilter = 'ALL');
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Managers'),
+                        selected: _selectedRoleFilter == 'MANAGER',
+                        onSelected: (s) {
+                          if (s) setState(() => _selectedRoleFilter = 'MANAGER');
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('Employees'),
+                        selected: _selectedRoleFilter == 'EMPLOYEE',
+                        onSelected: (s) {
+                          if (s) setState(() => _selectedRoleFilter = 'EMPLOYEE');
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
           const Divider(height: 1),
 
-          // Users List
+          // Main Directory Content (Grouped Manager Accordion vs Flat Directory)
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async => hrProvider.fetchUsers(),
               child: Builder(
                 builder: (context) {
                   if (hrProvider.isLoadingUsers) {
-                    return const LoadingWidget(message: 'Loading team directory...');
+                    return const LoadingWidget(message: 'Loading team directory & manager hierarchies...');
                   }
 
                   if (hrProvider.errorUsers != null) {
@@ -422,6 +495,135 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
                     );
                   }
 
+                  // 1. MANAGER ACCORDION TREE VIEW
+                  if (_groupByManagerView) {
+                    final managerCards = managersList.where((m) {
+                      if (_selectedManagerId != 'ALL' && m['id'] != _selectedManagerId) {
+                        return false;
+                      }
+                      return true;
+                    }).toList();
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      itemCount: managerCards.length,
+                      itemBuilder: (context, index) {
+                        final m = managerCards[index];
+                        final mId = m['id'] as String;
+                        final mName = m['full_name'] ?? 'Manager';
+                        final mTitle = m['job_title'] ?? 'Manager';
+                        final mDept = m['department'] ?? 'Department';
+                        final mEmail = m['email'] ?? '';
+
+                        // Direct reports under this manager
+                        final reports = hrProvider.usersList.where((u) => u['manager_id'] == mId).toList();
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 14),
+                          clipBehavior: Clip.antiAlias,
+                          child: ExpansionTile(
+                            initiallyExpanded: true,
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryColor.withOpacity(0.12),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.supervisor_account_rounded, color: AppTheme.primaryColor, size: 22),
+                            ),
+                            title: Text(
+                              mName,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            subtitle: Text('$mTitle • $mDept ($mEmail)'),
+                            trailing: Chip(
+                              label: Text(
+                                '${reports.length} Direct Reports',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
+                              ),
+                              backgroundColor: AppTheme.primaryColor,
+                              side: BorderSide.none,
+                            ),
+                            children: [
+                              Container(
+                                color: AppTheme.backgroundColor,
+                                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                child: reports.isEmpty
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(12.0),
+                                        child: Text(
+                                          'No direct reports currently assigned to this manager.',
+                                          style: TextStyle(fontStyle: FontStyle.italic, color: AppTheme.textSecondaryColor, fontSize: 13),
+                                        ),
+                                      )
+                                    : Column(
+                                        children: reports.map((emp) {
+                                          final empId = emp['id'] as String;
+                                          final empName = emp['full_name'] ?? 'Employee';
+                                          final empEmail = emp['email'] ?? '';
+                                          final empTitle = emp['job_title'] ?? 'Staff Member';
+                                          final empDept = emp['department'] ?? 'General';
+                                          final isActive = (emp['is_active'] as bool?) ?? true;
+
+                                          return Card(
+                                            margin: const EdgeInsets.only(bottom: 8),
+                                            color: Colors.white,
+                                            elevation: 0.5,
+                                            child: ListTile(
+                                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                              leading: CircleAvatar(
+                                                radius: 18,
+                                                backgroundColor: AppTheme.successColor.withOpacity(0.12),
+                                                child: Text(
+                                                  empName.isNotEmpty ? empName[0].toUpperCase() : 'E',
+                                                  style: const TextStyle(
+                                                    color: AppTheme.successColor,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                              ),
+                                              title: Row(
+                                                children: [
+                                                  Text(
+                                                    empName,
+                                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                                  ),
+                                                  if (!isActive) ...[
+                                                    const SizedBox(width: 6),
+                                                    const Text('(INACTIVE)', style: TextStyle(color: AppTheme.errorColor, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                  ],
+                                                ],
+                                              ),
+                                              subtitle: Text('$empTitle • $empDept ($empEmail)', style: const TextStyle(fontSize: 12)),
+                                              trailing: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  IconButton(
+                                                    icon: const Icon(Icons.edit_rounded, size: 18, color: AppTheme.primaryColor),
+                                                    tooltip: 'Edit / Reassign Manager',
+                                                    onPressed: () => _showEditUserDialog(context, emp),
+                                                  ),
+                                                  IconButton(
+                                                    icon: const Icon(Icons.person_off_rounded, size: 18, color: AppTheme.errorColor),
+                                                    tooltip: 'Deactivate',
+                                                    onPressed: () => _confirmDeleteUser(context, empId, empName),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  }
+
+                  // 2. FLAT DIRECTORY VIEW
                   return ListView.builder(
                     padding: const EdgeInsets.all(16.0),
                     itemCount: filteredUsers.length,
