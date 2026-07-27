@@ -1,10 +1,19 @@
+import 'package:flutter/foundation.dart';
+
 class AppConfig {
   static const String appName = 'Performance Evaluation Tool';
-  
-  // Base URL for API Gateway (Configurable for local vs web vs emulator)
-  // For Android Emulator use: http://10.0.2.2:5000/api
-  // For iOS/Web/Desktop use: http://localhost:5000/api
-  static const String apiBaseUrl = 'http://localhost:5000/api';
+
+  // Dynamic Base URL for API Gateway:
+  // In Web builds (including Render deployment), dynamically targets current host domain + /api
+  static String get apiBaseUrl {
+    if (kIsWeb) {
+      final scheme = Uri.base.scheme.isNotEmpty ? Uri.base.scheme : 'http';
+      final host = Uri.base.host.isNotEmpty ? Uri.base.host : 'localhost';
+      final portStr = (Uri.base.hasPort && Uri.base.port != 80 && Uri.base.port != 443) ? ':${Uri.base.port}' : '';
+      return '$scheme://$host$portStr/api';
+    }
+    return 'http://localhost:5000/api';
+  }
 
   static const String tokenKey = 'jwt_token';
   static const String userKey = 'user_data';
