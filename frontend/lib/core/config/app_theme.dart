@@ -48,7 +48,7 @@ class AppTheme {
         ),
         iconTheme: const IconThemeData(color: textPrimaryColor),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 0.5,
         color: cardBackgroundColor,
         surfaceTintColor: Colors.transparent,

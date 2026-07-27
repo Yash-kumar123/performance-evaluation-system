@@ -54,8 +54,6 @@ coverage/
 backend/coverage/
 dist/
 backend/dist/
-build/
-backend/build/
 
 # Environment Variables & Secrets (NEVER COMMIT REAL ENVS)
 .env
@@ -86,8 +84,7 @@ frontend/.pub/
 .pub-cache/
 frontend/.pub-cache/
 
-# Flutter Build Artifacts
-build/
+# Flutter Build Artifacts (Keep compiled web build out of Git, or build on CI)
 frontend/build/
 *.apk
 *.aab
@@ -119,9 +116,6 @@ frontend/ios/Runner.xcodeproj/xcuserdata/
 *.mode2v3
 *.perspectivev3
 *.moved-aside
-
-# Web Specific
-frontend/web/icons/
 
 # -----------------------------------------------------------------------------
 # IDE & Code Editor Files
