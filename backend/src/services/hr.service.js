@@ -34,6 +34,55 @@ class HRService {
   }
 
   /**
+   * Create new evaluation review cycle (Date Wise HR Feature)
+   */
+  static async createCycle(companyId, payload) {
+    const { name, cycleCode, startDate, endDate, isActive = true } = payload;
+
+    if (!name || !cycleCode || !startDate || !endDate) {
+      throw new AppError('Name, cycleCode (YYYY-MM), startDate, and endDate are required.', 400);
+    }
+
+    return await EvaluationRepository.createCycle({
+      companyId,
+      name,
+      cycleCode,
+      startDate,
+      endDate,
+      isActive
+    });
+  }
+
+  /**
+   * Get all review cycles for company
+   */
+  static async getCycles(companyId) {
+    return await EvaluationRepository.getCycles(companyId);
+  }
+
+  /**
+   * Assign or change an employee's direct manager (HR Feature)
+   */
+  static async assignManager(companyId, employeeId, managerId) {
+    const employee = await UserRepository.findById(employeeId, companyId);
+    if (!employee) {
+      throw new AppError('Employee not found.', 404);
+    }
+
+    if (managerId) {
+      const manager = await UserRepository.findById(managerId, companyId);
+      if (!manager) {
+        throw new AppError('Target manager not found.', 404);
+      }
+      if (employeeId === managerId) {
+        throw new AppError('An employee cannot be their own manager.', 400);
+      }
+    }
+
+    return await UserRepository.updateManager(employeeId, managerId, companyId);
+  }
+
+  /**
    * Get list of all managers and their submission progress
    */
   static async getManagerSubmissions(companyId, cycleId = null) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
@@ -7,12 +8,16 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final List<Widget>? actions;
   final bool showDrawerButton;
+  final bool? showBackButton;
+  final VoidCallback? onBackPressed;
 
   const CustomAppBar({
     super.key,
     required this.title,
     this.actions,
     this.showDrawerButton = true,
+    this.showBackButton,
+    this.onBackPressed,
   });
 
   @override
@@ -20,8 +25,31 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final auth = Provider.of<AuthProvider>(context);
     final user = auth.user;
 
+    final bool canGoBack = showBackButton ?? (context.canPop() && !showDrawerButton);
+
     return AppBar(
       title: Text(title),
+      leading: canGoBack
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              tooltip: 'Back',
+              onPressed: onBackPressed ??
+                  () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      // Fallback navigation by role if pop stack is empty
+                      if (user?.role == 'HR') {
+                        context.go('/hr');
+                      } else if (user?.role == 'MANAGER') {
+                        context.go('/manager');
+                      } else {
+                        context.go('/employee');
+                      }
+                    }
+                  },
+            )
+          : null,
       actions: [
         if (user != null)
           Padding(

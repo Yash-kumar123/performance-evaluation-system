@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/hr_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
-import '../core/widgets/app_drawer.dart';
 import '../core/widgets/empty_state_widget.dart';
 
 class CompletedReviewsScreen extends StatelessWidget {
@@ -15,8 +14,11 @@ class CompletedReviewsScreen extends StatelessWidget {
     final completedList = hrProvider.completedManagers;
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Compliant Managers'),
-      drawer: const AppDrawer(),
+      appBar: const CustomAppBar(
+        title: 'Compliant Managers',
+        showBackButton: true,
+        showDrawerButton: false,
+      ),
       backgroundColor: AppTheme.backgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {

@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/employee_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
-import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
@@ -30,8 +29,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final empProvider = Provider.of<EmployeeProvider>(context);
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Evaluation History'),
-      drawer: const AppDrawer(),
+      appBar: const CustomAppBar(
+        title: 'Evaluation History',
+        showBackButton: true,
+        showDrawerButton: false,
+      ),
       backgroundColor: AppTheme.backgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {

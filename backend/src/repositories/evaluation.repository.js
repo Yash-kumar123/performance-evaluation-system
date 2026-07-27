@@ -27,6 +27,50 @@ class EvaluationRepository {
   }
 
   /**
+   * Create a new evaluation cycle (HR Feature - Date Wise Cycle Creation)
+   */
+  static async createCycle({ companyId, name, cycleCode, startDate, endDate, isActive = true }) {
+    const client = await db.getClient();
+    try {
+      await client.query('BEGIN');
+      if (isActive) {
+        // Deactivate existing active cycles for this company
+        await client.query(
+          `UPDATE evaluation_cycles SET is_active = FALSE WHERE company_id = $1`,
+          [companyId]
+        );
+      }
+
+      const sql = `
+        INSERT INTO evaluation_cycles (company_id, name, cycle_code, start_date, end_date, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING *
+      `;
+      const res = await client.query(sql, [companyId, name, cycleCode, startDate, endDate, isActive]);
+      await client.query('COMMIT');
+      return res.rows[0];
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Get all evaluation cycles for company tenant
+   */
+  static async getCycles(companyId) {
+    const sql = `
+      SELECT * FROM evaluation_cycles
+      WHERE company_id = $1
+      ORDER BY start_date DESC
+    `;
+    const res = await db.query(sql, [companyId]);
+    return res.rows;
+  }
+
+  /**
    * Get master parameters
    */
   static async getParameters() {

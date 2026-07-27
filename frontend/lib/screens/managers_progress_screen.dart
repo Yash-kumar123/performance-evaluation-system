@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/hr_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
-import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
@@ -40,8 +39,11 @@ class _ManagersProgressScreenState extends State<ManagersProgressScreen> {
     final hrProvider = Provider.of<HRProvider>(context);
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Manager Submission Progress'),
-      drawer: const AppDrawer(),
+      appBar: const CustomAppBar(
+        title: 'Manager Submission Progress',
+        showBackButton: true,
+        showDrawerButton: false,
+      ),
       backgroundColor: AppTheme.backgroundColor,
       body: RefreshIndicator(
         onRefresh: () async {
@@ -79,7 +81,6 @@ class _ManagersProgressScreenState extends State<ManagersProgressScreen> {
                 final dept = m['department'] ?? 'Department';
                 final totalReports = (m['total_direct_reports'] as int?) ?? 0;
                 final completed = (m['completed_submissions'] as int?) ?? 0;
-                final pending = (m['pending_submissions'] as int?) ?? 0;
                 final status = m['submission_status'] ?? 'PENDING';
 
                 final double progress = totalReports > 0 ? (completed / totalReports) : 0.0;
@@ -114,7 +115,7 @@ class _ManagersProgressScreenState extends State<ManagersProgressScreen> {
                                     const SizedBox(height: 2),
                                     Text(
                                       dept,
-                                      style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                                      style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
                                     ),
                                   ],
                                 ),

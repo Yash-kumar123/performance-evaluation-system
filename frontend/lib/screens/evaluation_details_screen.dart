@@ -37,7 +37,11 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
     final empProvider = Provider.of<EmployeeProvider>(context);
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Evaluation Details'),
+      appBar: const CustomAppBar(
+        title: 'Evaluation Details',
+        showBackButton: true,
+        showDrawerButton: false,
+      ),
       backgroundColor: AppTheme.backgroundColor,
       body: Builder(
         builder: (context) {

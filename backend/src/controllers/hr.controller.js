@@ -12,6 +12,34 @@ class HRController {
     }
   }
 
+  static async createCycle(req, res, next) {
+    try {
+      const cycle = await HRService.createCycle(req.tenantId, req.body);
+      return sendSuccess(res, 201, 'Evaluation cycle created successfully', cycle);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getCycles(req, res, next) {
+    try {
+      const cycles = await HRService.getCycles(req.tenantId);
+      return sendSuccess(res, 200, 'Evaluation cycles retrieved', cycles);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async assignManager(req, res, next) {
+    try {
+      const { employeeId, managerId } = req.body;
+      const updatedUser = await HRService.assignManager(req.tenantId, employeeId, managerId);
+      return sendSuccess(res, 200, 'Employee manager assigned successfully', updatedUser);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getManagerSubmissions(req, res, next) {
     try {
       const cycleId = req.query.cycleId || null;

@@ -85,6 +85,20 @@ class UserRepository {
     const res = await db.query(sql, [employeeId, managerId, companyId]);
     return res.rows.length > 0;
   }
+
+  /**
+   * Assign or update employee's direct manager (HR Feature)
+   */
+  static async updateManager(employeeId, managerId, companyId) {
+    const sql = `
+      UPDATE users
+      SET manager_id = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $2 AND company_id = $3
+      RETURNING id, full_name, email, role, manager_id, job_title, department
+    `;
+    const res = await db.query(sql, [managerId, employeeId, companyId]);
+    return res.rows[0] || null;
+  }
 }
 
 module.exports = UserRepository;

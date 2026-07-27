@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/manager_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
-import '../core/widgets/app_drawer.dart';
 import '../core/widgets/empty_state_widget.dart';
 
 class SubmittedEvaluationsScreen extends StatelessWidget {
@@ -16,8 +15,11 @@ class SubmittedEvaluationsScreen extends StatelessWidget {
     final submittedList = mgrProvider.teamStatus.where((item) => item['status'] == 'SUBMITTED').toList();
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Submitted Team Reviews'),
-      drawer: const AppDrawer(),
+      appBar: const CustomAppBar(
+        title: 'Submitted Team Reviews',
+        showBackButton: true,
+        showDrawerButton: false,
+      ),
       backgroundColor: AppTheme.backgroundColor,
       body: submittedList.isEmpty
           ? const EmptyStateWidget(
