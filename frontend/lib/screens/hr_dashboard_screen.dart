@@ -9,6 +9,7 @@ import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
 import '../core/widgets/hr_performance_chart_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class HRDashboardScreen extends StatefulWidget {
   const HRDashboardScreen({super.key});
@@ -261,13 +262,19 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
       body: Builder(
         builder: (context) {
           if (hrProvider.isLoadingDashboard) {
-            return const LoadingWidget(message: 'Loading HR metrics & manager compliance...');
+            return ResponsiveUtils.appBarBody(
+              context: context,
+              child: const LoadingWidget(message: 'Loading HR metrics & manager compliance...'),
+            );
           }
 
           if (hrProvider.errorDashboard != null) {
-            return CustomErrorWidget(
-              message: hrProvider.errorDashboard!,
-              onRetry: () => hrProvider.fetchDashboard(),
+            return ResponsiveUtils.appBarBody(
+              context: context,
+              child: CustomErrorWidget(
+                message: hrProvider.errorDashboard!,
+                onRetry: () => hrProvider.fetchDashboard(),
+              ),
             );
           }
 
@@ -277,37 +284,76 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
             onRefresh: () async {
               _loadData();
             },
-            child: SingleChildScrollView(
+            child: ResponsiveUtils.appBarBody(
+              context: context,
+              scrollable: true,
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Top Title & Cycle Creation Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isCompact = constraints.maxWidth < 520;
+                      if (isCompact) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'Evaluation Compliance Overview',
+                              style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Tenant Active Cycle: $cycleName',
+                              style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                            ),
+                            const SizedBox(height: 12),
+                            Semantics(
+                              button: true,
+                              label: 'Create review cycle',
+                              child: SizedBox(
+                                width: double.infinity,
+                                height: ResponsiveUtils.primaryButtonMinHeight,
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _showCreateCycleDialog(context),
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  label: const Text('Create Cycle'),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            'Evaluation Compliance Overview',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Evaluation Compliance Overview',
+                                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Tenant Active Cycle: $cycleName',
+                                  style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Tenant Active Cycle: $cycleName',
-                            style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: () => _showCreateCycleDialog(context),
+                            icon: const Icon(Icons.add_rounded, size: 18),
+                            label: const Text('Create Cycle'),
                           ),
                         ],
-                      ),
-                      ElevatedButton.icon(
-                        onPressed: () => _showCreateCycleDialog(context),
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Create Cycle'),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
 
@@ -316,21 +362,27 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.filter_alt_rounded, color: AppTheme.primaryColor, size: 20),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'Filter Review Cycle:',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                            const Row(
+                              children: [
+                                Icon(Icons.filter_alt_rounded, color: AppTheme.primaryColor, size: 20),
+                                SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Filter Review Cycle:',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: _selectedFilterCycleId ?? hrProvider.cycle?['id'],
-                                  isExpanded: true,
-                                  items: hrProvider.cyclesList.map<DropdownMenuItem<String>>((c) {
+                            const SizedBox(height: 8),
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _selectedFilterCycleId ?? hrProvider.cycle?['id'],
+                                isExpanded: true,
+                                items: hrProvider.cyclesList.map<DropdownMenuItem<String>>((c) {
                                     final cId = c['id'] as String;
                                     final cName = c['name'] ?? 'Cycle';
                                     final cCode = c['cycle_code'] ?? '';
@@ -358,7 +410,6 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                                   },
                                 ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -367,10 +418,10 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
 
                   // 4 Top Metric Analytics Cards Grid
                   GridView.count(
-                    crossAxisCount: MediaQuery.of(context).size.width > 900 ? 4 : (MediaQuery.of(context).size.width > 600 ? 2 : 1),
+                    crossAxisCount: ResponsiveUtils.gridCrossAxisCount(context, compact: 1, medium: 2, expanded: 4),
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 2.2,
+                    childAspectRatio: ResponsiveUtils.isCompact(context) ? 2.6 : 2.2,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     children: [
@@ -410,12 +461,15 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Overall Manager Submissions Compliance Rate',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                              const Expanded(
+                                child: Text(
+                                  'Overall Manager Submissions Compliance Rate',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                ),
                               ),
+                              const SizedBox(width: 8),
                               Text(
                                 '${hrProvider.overallCompletionPercentage.toStringAsFixed(1)}%',
                                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.primaryColor),
@@ -614,7 +668,7 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                 // Conditional: Year selector or Cycle count selector
                 if (mode == 'YEAR' && availableYears.isNotEmpty)
                   SizedBox(
-                    width: 140,
+                    width: ResponsiveUtils.isCompact(context) ? double.infinity : 160,
                     child: DropdownButtonFormField<int>(
                       value: availableYears.contains(selectedYear) ? selectedYear : availableYears.first,
                       isDense: true,
@@ -635,7 +689,7 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                   )
                 else if (mode == 'CYCLES')
                   SizedBox(
-                    width: 160,
+                    width: ResponsiveUtils.isCompact(context) ? double.infinity : 180,
                     child: DropdownButtonFormField<int>(
                       value: selectedCycleLimit,
                       isDense: true,
@@ -661,7 +715,7 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
                 // Employee Scope Filter
                 if (employees.isNotEmpty)
                   SizedBox(
-                    width: 200,
+                    width: ResponsiveUtils.isCompact(context) ? double.infinity : 220,
                     child: DropdownButtonFormField<String>(
                       value: selectedEmployeeId,
                       isDense: true,
@@ -698,9 +752,9 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
 
             // ── Chart Body ──────────────────────────────────────────────────
             if (hrProvider.isLoadingAnalytics)
-              const SizedBox(
-                height: 160,
-                child: Center(child: CircularProgressIndicator()),
+              SizedBox(
+                height: ResponsiveUtils.chartHeight(context),
+                child: const Center(child: CircularProgressIndicator()),
               )
             else if (hrProvider.errorAnalytics != null)
               Container(
@@ -734,7 +788,7 @@ class _HRDashboardScreenState extends State<HRDashboardScreen> {
         decoration: BoxDecoration(
           color: isActive ? AppTheme.primaryColor : AppTheme.primaryColor.withOpacity(0.07),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isActive ? AppTheme.primaryColor : AppTheme.dividerColor),
+          border: Border.all(color: isActive ? AppTheme.primaryColor : AppTheme.borderSubtleColor),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

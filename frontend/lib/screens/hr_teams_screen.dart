@@ -7,6 +7,7 @@ import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class HRTeamsScreen extends StatefulWidget {
   const HRTeamsScreen({super.key});
@@ -362,11 +363,13 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
       ),
       drawer: const AppDrawer(),
       backgroundColor: AppTheme.backgroundColor,
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           // Filter & View Controller Bar
           Container(
-            padding: const EdgeInsets.all(16.0),
+            padding: ResponsiveUtils.screenPadding(context),
             color: Colors.white,
             child: Column(
               children: [
@@ -381,42 +384,40 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
                 const SizedBox(height: 12),
 
                 // Manager Filter Dropdown & View Mode Switcher
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedManagerId,
-                        decoration: const InputDecoration(
-                          labelText: 'Filter by Manager Team Dropdown',
-                          prefixIcon: Icon(Icons.supervisor_account_rounded, size: 18),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        ),
-                        items: [
-                          const DropdownMenuItem<String>(
-                            value: 'ALL',
-                            child: Text('All Manager Teams', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                          ...managersList.map<DropdownMenuItem<String>>((m) {
-                            final mId = m['id'] as String;
-                            final mName = m['full_name'] as String? ?? 'Manager';
-                            final dept = m['department'] as String? ?? '';
-                            return DropdownMenuItem<String>(
-                              value: mId,
-                              child: Text('$mName ($dept team)'),
-                            );
-                          }),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setState(() => _selectedManagerId = val);
-                          }
-                        },
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 560;
+                    final managerDropdown = DropdownButtonFormField<String>(
+                      value: _selectedManagerId,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Filter by Manager Team Dropdown',
+                        prefixIcon: Icon(Icons.supervisor_account_rounded, size: 18),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                    ),
-                    const SizedBox(width: 12),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: 'ALL',
+                          child: Text('All Manager Teams', style: TextStyle(fontWeight: FontWeight.bold)),
+                        ),
+                        ...managersList.map<DropdownMenuItem<String>>((m) {
+                          final mId = m['id'] as String;
+                          final mName = m['full_name'] as String? ?? 'Manager';
+                          final dept = m['department'] as String? ?? '';
+                          return DropdownMenuItem<String>(
+                            value: mId,
+                            child: Text('$mName ($dept team)', overflow: TextOverflow.ellipsis),
+                          );
+                        }),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) {
+                          setState(() => _selectedManagerId = val);
+                        }
+                      },
+                    );
 
-                    // View Mode Toggle (Accordion vs Flat Directory)
-                    IconButton.filledTonal(
+                    final viewToggle = IconButton.filledTonal(
                       onPressed: () {
                         setState(() {
                           _groupByManagerView = !_groupByManagerView;
@@ -427,8 +428,26 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
                         color: AppTheme.primaryColor,
                       ),
                       tooltip: _groupByManagerView ? 'Switch to Flat Directory' : 'Switch to Manager Accordion Tree',
-                    ),
-                  ],
+                    );
+
+                    if (isCompact) {
+                      return Column(
+                        children: [
+                          managerDropdown,
+                          const SizedBox(height: 12),
+                          Align(alignment: Alignment.centerRight, child: viewToggle),
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(child: managerDropdown),
+                        const SizedBox(width: 12),
+                        viewToggle,
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
 
@@ -750,6 +769,7 @@ class _HRTeamsScreenState extends State<HRTeamsScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

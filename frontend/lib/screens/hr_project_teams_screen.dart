@@ -7,6 +7,7 @@ import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class HRProjectTeamsScreen extends StatefulWidget {
   const HRProjectTeamsScreen({super.key});
@@ -367,10 +368,12 @@ class _HRProjectTeamsScreenState extends State<HRProjectTeamsScreen> {
       ),
       drawer: const AppDrawer(),
       backgroundColor: AppTheme.backgroundColor,
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(16.0),
+            padding: ResponsiveUtils.screenPadding(context),
             color: Colors.white,
             child: TextField(
               controller: _searchController,
@@ -504,6 +507,7 @@ class _HRProjectTeamsScreenState extends State<HRProjectTeamsScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

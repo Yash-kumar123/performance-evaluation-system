@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../core/config/app_config.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/auth_provider.dart';
+import '../core/utils/responsive_utils.dart';
+import '../core/widgets/app_logo.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -41,41 +44,53 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final size = MediaQuery.of(context).size;
+    final logoSize = (size.shortestSide * 0.42).clamp(140.0, 220.0);
+
+    return Scaffold(
       backgroundColor: AppTheme.primaryColor,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.analytics_rounded,
-              size: 72,
-              color: Colors.white,
+      body: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AppLogo(size: logoSize),
+                const SizedBox(height: 24),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    AppConfig.appName,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: ResponsiveUtils.isCompact(context) ? 20 : 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Multi-Tenant SaaS Portal',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                const SizedBox(
+                  height: 28,
+                  width: 28,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: 20),
-            Text(
-              'Performance Evaluation Tool',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 0.5,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Multi-Tenant SaaS Portal',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-            ),
-            SizedBox(height: 40),
-            CircularProgressIndicator(
-              color: Colors.white,
-              strokeWidth: 3,
-            ),
-          ],
+          ),
         ),
       ),
     );

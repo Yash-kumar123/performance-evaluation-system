@@ -21,6 +21,30 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.3
+
+# Pin path_provider_android to avoid jni-1.0.1 which breaks Gradle builds
+# with: "Could not find method kotlin() for arguments on project ':jni'"
+dependency_overrides:
+  path_provider_android: 2.2.10
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/branding/app_logo.png
+  adaptive_icon_background: "#4F46E5"
+  adaptive_icon_foreground: assets/branding/app_logo.png
+  web:
+    generate: true
+    image_path: assets/branding/app_logo.png
+    background_color: "#4F46E5"
+    theme_color: "#4F46E5"
+  windows:
+    generate: true
+    image_path: assets/branding/app_logo.png
+    icon_size: 256
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/app_logo.png

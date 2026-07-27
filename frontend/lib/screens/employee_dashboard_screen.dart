@@ -9,6 +9,7 @@ import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class EmployeeDashboardScreen extends StatefulWidget {
   const EmployeeDashboardScreen({super.key});
@@ -69,9 +70,10 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
         onRefresh: () async {
           _loadData();
         },
-        child: SingleChildScrollView(
+        child: ResponsiveUtils.appBarBody(
+          context: context,
+          scrollable: true,
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -222,25 +224,28 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
               const SizedBox(height: 24),
 
               // Quick Action Navigation Buttons
-              Row(
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
                 children: [
-                  Expanded(
+                  SizedBox(
+                    width: ResponsiveUtils.isCompact(context) ? double.infinity : null,
                     child: OutlinedButton.icon(
                       onPressed: () => context.go('/cycles'),
                       icon: const Icon(Icons.calendar_month_rounded, size: 18),
                       label: const Text('Review Cycles'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  SizedBox(
+                    width: ResponsiveUtils.isCompact(context) ? double.infinity : null,
                     child: OutlinedButton.icon(
                       onPressed: () => context.go('/history'),
                       icon: const Icon(Icons.history_rounded, size: 18),
                       label: const Text('History'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
+                  SizedBox(
+                    width: ResponsiveUtils.isCompact(context) ? double.infinity : null,
                     child: OutlinedButton.icon(
                       onPressed: () => context.go('/profile'),
                       icon: const Icon(Icons.person_outline_rounded, size: 18),
@@ -495,12 +500,19 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
             ],
 
             const SizedBox(height: 18),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
+            Semantics(
+              button: true,
+              label: 'View official score sheet',
+              child: ResponsiveUtils.primaryButton(
                 onPressed: () => context.go('/evaluation/$evalId'),
-                icon: const Icon(Icons.visibility_rounded, size: 18),
-                label: const Text('View Official Score Sheet'),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.visibility_rounded, size: 18, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('View Official Score Sheet'),
+                  ],
+                ),
               ),
             ),
           ],

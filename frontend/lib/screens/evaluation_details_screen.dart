@@ -7,6 +7,7 @@ import '../core/providers/employee_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class EvaluationDetailsScreen extends StatefulWidget {
   final String evaluationId;
@@ -74,11 +75,14 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
           final status = eval['status'] ?? 'SUBMITTED';
           final summaryComment = eval['summary_comment'] as String?;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          return ResponsiveUtils.appBarBody(
+            context: context,
+            scrollable: true,
+            child: ResponsiveUtils.constrainedContent(
+              context,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                 // Header Details Card
                 Card(
                   child: Padding(
@@ -87,12 +91,15 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              cycleName,
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                            Expanded(
+                              child: Text(
+                                cycleName,
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Chip(
                               label: Text(
                                 status,
@@ -257,6 +264,7 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
                 ),
               ],
             ),
+          ),
           );
         },
       ),
@@ -322,7 +330,7 @@ class _EvaluationDetailsScreenState extends State<EvaluationDetailsScreen> {
             ),
             const SizedBox(height: 24),
             SizedBox(
-              height: 200,
+              height: ResponsiveUtils.chartHeight(context, compact: 180, expanded: 220),
               child: LineChart(
                 LineChartData(
                   minY: 1,

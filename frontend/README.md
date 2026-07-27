@@ -1,17 +1,18 @@
-# performance_evaluation_app
+# Performance Evaluation System (Flutter Client)
 
-A new Flutter project.
+Flutter mobile, web, and desktop client for the **Performance Evaluation System** — a multi-tenant SaaS portal for employee performance reviews.
 
-## Getting Started
+## Branding Assets
 
-This project is a starting point for a Flutter application.
+- Logo: `assets/branding/app_logo.png`
+- Launcher icons are generated via `flutter_launcher_icons` (see `pubspec.yaml`)
 
-A few resources to get you started if this is your first Flutter project:
+## Setup
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter pub get
+dart run flutter_launcher_icons
+flutter run
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+For full project setup (backend, database, seed data), see the [root README](../README.md).

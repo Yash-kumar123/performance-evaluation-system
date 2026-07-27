@@ -5,6 +5,7 @@ import '../core/config/app_theme.dart';
 import '../core/providers/manager_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/empty_state_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class SubmittedEvaluationsScreen extends StatelessWidget {
   const SubmittedEvaluationsScreen({super.key});
@@ -21,14 +22,16 @@ class SubmittedEvaluationsScreen extends StatelessWidget {
         showDrawerButton: false,
       ),
       backgroundColor: AppTheme.backgroundColor,
-      body: submittedList.isEmpty
+      body: ResponsiveUtils.appBarBody(
+        context: context,
+        child: submittedList.isEmpty
           ? const EmptyStateWidget(
               title: 'No Finalized Submissions',
               message: 'You have not finalized any team evaluations for the active cycle yet.',
               icon: Icons.task_alt_rounded,
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(16.0),
+              padding: ResponsiveUtils.screenPadding(context),
               itemCount: submittedList.length,
               itemBuilder: (context, index) {
                 final item = submittedList[index];
@@ -59,6 +62,7 @@ class SubmittedEvaluationsScreen extends StatelessWidget {
                 );
               },
             ),
+      ),
     );
   }
 }

@@ -6,6 +6,7 @@ import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class ManagersProgressScreen extends StatefulWidget {
   const ManagersProgressScreen({super.key});
@@ -45,7 +46,9 @@ class _ManagersProgressScreenState extends State<ManagersProgressScreen> {
         showDrawerButton: false,
       ),
       backgroundColor: AppTheme.backgroundColor,
-      body: RefreshIndicator(
+      body: ResponsiveUtils.appBarBody(
+        context: context,
+        child: RefreshIndicator(
         onRefresh: () async {
           await hrProvider.fetchDashboard();
         },
@@ -73,7 +76,7 @@ class _ManagersProgressScreenState extends State<ManagersProgressScreen> {
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.all(16.0),
+              padding: ResponsiveUtils.screenPadding(context),
               itemCount: managers.length,
               itemBuilder: (context, index) {
                 final m = managers[index];
@@ -93,34 +96,39 @@ class _ManagersProgressScreenState extends State<ManagersProgressScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
-                                  child: Text(
-                                    name.isNotEmpty ? name[0].toUpperCase() : 'M',
-                                    style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
+                                    child: Text(
+                                      name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                                      style: const TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      name,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          name,
+                                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          dept,
+                                          style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      dept,
-                                      style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Chip(
                               label: Text(
                                 status,
@@ -171,6 +179,7 @@ class _ManagersProgressScreenState extends State<ManagersProgressScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }

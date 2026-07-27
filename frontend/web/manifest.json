@@ -1,11 +1,11 @@
 {
-    "name": "performance_evaluation_app",
-    "short_name": "performance_evaluation_app",
+    "name": "Performance Evaluation System",
+    "short_name": "Perf Evaluation",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#4F46E5",
+    "theme_color": "#4F46E5",
+    "description": "A Multi-Tenant Performance Evaluation System built with Flutter",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

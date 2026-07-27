@@ -176,6 +176,7 @@ The `users` table utilizes an **adjacency-list self-referencing relationship (`m
 2. Install Flutter packages:
    ```bash
    flutter pub get
+   dart run flutter_launcher_icons
    ```
 3. Launch the application:
    ```bash

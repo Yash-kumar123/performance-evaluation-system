@@ -4,6 +4,7 @@ import '../core/config/app_theme.dart';
 import '../core/providers/hr_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/empty_state_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class CompletedReviewsScreen extends StatelessWidget {
   const CompletedReviewsScreen({super.key});
@@ -20,7 +21,9 @@ class CompletedReviewsScreen extends StatelessWidget {
         showDrawerButton: false,
       ),
       backgroundColor: AppTheme.backgroundColor,
-      body: RefreshIndicator(
+      body: ResponsiveUtils.appBarBody(
+        context: context,
+        child: RefreshIndicator(
         onRefresh: () async {
           await hrProvider.fetchDashboard();
         },
@@ -31,7 +34,8 @@ class CompletedReviewsScreen extends StatelessWidget {
                 icon: Icons.pending_actions_rounded,
               )
             : ListView.builder(
-                padding: const EdgeInsets.all(16.0),
+                padding: ResponsiveUtils.screenPadding(context),
+                physics: const AlwaysScrollableScrollPhysics(),
                 itemCount: completedList.length,
                 itemBuilder: (context, index) {
                   final m = completedList[index];
@@ -71,6 +75,7 @@ class CompletedReviewsScreen extends StatelessWidget {
                   );
                 },
               ),
+      ),
       ),
     );
   }

@@ -7,6 +7,7 @@ import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -35,7 +36,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
         showDrawerButton: false,
       ),
       backgroundColor: AppTheme.backgroundColor,
-      body: RefreshIndicator(
+      body: ResponsiveUtils.appBarBody(
+        context: context,
+        child: RefreshIndicator(
         onRefresh: () async {
           await empProvider.fetchEvaluationHistory();
         },
@@ -63,7 +66,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.all(16.0),
+              padding: ResponsiveUtils.screenPadding(context),
               itemCount: history.length,
               itemBuilder: (context, index) {
                 final item = history[index];
@@ -89,12 +92,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ),
                     ),
                     title: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          cycleName,
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        Expanded(
+                          child: Text(
+                            cycleName,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
@@ -141,6 +146,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }

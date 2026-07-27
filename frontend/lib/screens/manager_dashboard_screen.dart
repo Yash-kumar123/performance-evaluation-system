@@ -9,6 +9,7 @@ import '../core/widgets/custom_app_bar.dart';
 import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class ManagerDashboardScreen extends StatefulWidget {
   const ManagerDashboardScreen({super.key});
@@ -43,9 +44,10 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
         onRefresh: () async {
           _loadData();
         },
-        child: SingleChildScrollView(
+        child: ResponsiveUtils.appBarBody(
+          context: context,
+          scrollable: true,
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(20.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -118,24 +120,59 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
               const SizedBox(height: 24),
 
               // Top Primary Action Bar Buttons
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => context.go('/manager/team'),
-                      icon: const Icon(Icons.people_outline_rounded, size: 18),
-                      label: const Text('My Direct Team'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => context.go('/manager/submitted'),
-                      icon: const Icon(Icons.task_alt_rounded, size: 18),
-                      label: const Text('Submitted Reviews'),
-                    ),
-                  ),
-                ],
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 480;
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        SizedBox(
+                          height: ResponsiveUtils.primaryButtonMinHeight,
+                          child: ElevatedButton.icon(
+                            onPressed: () => context.go('/manager/team'),
+                            icon: const Icon(Icons.people_outline_rounded, size: 18),
+                            label: const Text('My Direct Team'),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: ResponsiveUtils.primaryButtonMinHeight,
+                          child: OutlinedButton.icon(
+                            onPressed: () => context.go('/manager/submitted'),
+                            icon: const Icon(Icons.task_alt_rounded, size: 18),
+                            label: const Text('Submitted Reviews'),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: ResponsiveUtils.primaryButtonMinHeight,
+                          child: ElevatedButton.icon(
+                            onPressed: () => context.go('/manager/team'),
+                            icon: const Icon(Icons.people_outline_rounded, size: 18),
+                            label: const Text('My Direct Team'),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: SizedBox(
+                          height: ResponsiveUtils.primaryButtonMinHeight,
+                          child: OutlinedButton.icon(
+                            onPressed: () => context.go('/manager/submitted'),
+                            icon: const Icon(Icons.task_alt_rounded, size: 18),
+                            label: const Text('Submitted Reviews'),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 28),
 
@@ -160,54 +197,45 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                 )
               else ...[
                 // 4 Interactive Clickable Metric Analytics Cards Grid
-                Row(
+                GridView.count(
+                  crossAxisCount: ResponsiveUtils.gridCrossAxisCount(context, compact: 2, medium: 2, expanded: 4),
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: ResponsiveUtils.isCompact(context) ? 1.35 : 1.5,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   children: [
-                    Expanded(
-                      child: _buildMetricCard(
-                        context,
-                        title: 'Direct Reports',
-                        value: '${mgrProvider.totalReports}',
-                        icon: Icons.groups_outlined,
-                        color: AppTheme.primaryColor,
-                        onTap: () => context.go('/manager/team'),
-                      ),
+                    _buildMetricCard(
+                      context,
+                      title: 'Direct Reports',
+                      value: '${mgrProvider.totalReports}',
+                      icon: Icons.groups_outlined,
+                      color: AppTheme.primaryColor,
+                      onTap: () => context.go('/manager/team'),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        context,
-                        title: 'Completed',
-                        value: '${mgrProvider.completedCount}',
-                        icon: Icons.check_circle_outline_rounded,
-                        color: AppTheme.successColor,
-                        onTap: () => context.go('/manager/submitted'),
-                      ),
+                    _buildMetricCard(
+                      context,
+                      title: 'Completed',
+                      value: '${mgrProvider.completedCount}',
+                      icon: Icons.check_circle_outline_rounded,
+                      color: AppTheme.successColor,
+                      onTap: () => context.go('/manager/submitted'),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricCard(
-                        context,
-                        title: 'Pending',
-                        value: '${mgrProvider.pendingCount}',
-                        icon: Icons.hourglass_empty_rounded,
-                        color: AppTheme.warningColor,
-                        onTap: () => context.go('/manager/team?filter=PENDING'),
-                      ),
+                    _buildMetricCard(
+                      context,
+                      title: 'Pending',
+                      value: '${mgrProvider.pendingCount}',
+                      icon: Icons.hourglass_empty_rounded,
+                      color: AppTheme.warningColor,
+                      onTap: () => context.go('/manager/team?filter=PENDING'),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildMetricCard(
-                        context,
-                        title: 'Completion Rate',
-                        value: '${mgrProvider.completionPercentage.toStringAsFixed(0)}%',
-                        icon: Icons.pie_chart_outline_rounded,
-                        color: AppTheme.secondaryColor,
-                        onTap: () => context.go('/manager/team'),
-                      ),
+                    _buildMetricCard(
+                      context,
+                      title: 'Completion Rate',
+                      value: '${mgrProvider.completionPercentage.toStringAsFixed(0)}%',
+                      icon: Icons.pie_chart_outline_rounded,
+                      color: AppTheme.secondaryColor,
+                      onTap: () => context.go('/manager/team'),
                     ),
                   ],
                 ),
@@ -226,7 +254,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         ),
                         const SizedBox(height: 20),
                         SizedBox(
-                          height: 160,
+                          height: ResponsiveUtils.chartHeight(context),
                           child: PieChart(
                             PieChartData(
                               sectionsSpace: 4,

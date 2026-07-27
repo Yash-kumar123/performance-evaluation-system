@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 class AppConfig {
-  static const String appName = 'Performance Evaluation Tool';
+  static const String appName = 'Performance Evaluation System';
+  static const String appLogoAsset = 'assets/branding/app_logo.png';
 
   // Production Render deployment URL
   static const String productionBaseUrl = 'https://performance-evaluation-system-gacb.onrender.com';

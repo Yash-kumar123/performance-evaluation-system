@@ -8,6 +8,7 @@ import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class TeamScreen extends StatefulWidget {
   const TeamScreen({super.key});
@@ -218,42 +219,84 @@ class _TeamScreenState extends State<TeamScreen> {
       ),
       drawer: const AppDrawer(),
       backgroundColor: AppTheme.backgroundColor,
-      body: Column(
+      body: SafeArea(
+        top: false,
+        child: Column(
         children: [
           // Search & Action Header Container
           Container(
-            padding: const EdgeInsets.all(16.0),
+            padding: ResponsiveUtils.screenPadding(context),
             color: Colors.white,
             child: Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (_) => setState(() {}),
-                        decoration: InputDecoration(
-                          hintText: 'Search direct reports...',
-                          prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded, size: 18),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {});
-                                  },
-                                )
-                              : null,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isCompact = constraints.maxWidth < 520;
+                    if (isCompact) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: _searchController,
+                            onChanged: (_) => setState(() {}),
+                            decoration: InputDecoration(
+                              hintText: 'Search direct reports...',
+                              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      tooltip: 'Clear search',
+                                      icon: const Icon(Icons.clear_rounded, size: 18),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() {});
+                                      },
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: ResponsiveUtils.primaryButtonMinHeight,
+                            child: ElevatedButton.icon(
+                              onPressed: () => _showRegisterMemberDialog(context),
+                              icon: const Icon(Icons.person_add_rounded, size: 18),
+                              label: const Text('Add Member'),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (_) => setState(() {}),
+                            decoration: InputDecoration(
+                              hintText: 'Search direct reports...',
+                              prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      tooltip: 'Clear search',
+                                      icon: const Icon(Icons.clear_rounded, size: 18),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() {});
+                                      },
+                                    )
+                                  : null,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: () => _showRegisterMemberDialog(context),
-                      icon: const Icon(Icons.person_add_rounded, size: 18),
-                      label: const Text('Add Member'),
-                    ),
-                  ],
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: () => _showRegisterMemberDialog(context),
+                          icon: const Icon(Icons.person_add_rounded, size: 18),
+                          label: const Text('Add Member'),
+                        ),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -326,6 +369,7 @@ class _TeamScreenState extends State<TeamScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          isThreeLine: true,
                           leading: CircleAvatar(
                             backgroundColor: AppTheme.primaryColor.withOpacity(0.12),
                             child: Text(
@@ -340,37 +384,42 @@ class _TeamScreenState extends State<TeamScreen> {
                             name,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                           ),
-                          subtitle: Text(title),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _getStatusColor(status).withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  _getStatusLabel(status),
-                                  style: TextStyle(
-                                    color: _getStatusColor(status),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 11,
+                              Text(title),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: _getStatusColor(status).withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _getStatusLabel(status),
+                                      style: TextStyle(
+                                        color: _getStatusColor(status),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 11,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                status == 'SUBMITTED' ? 'View' : 'Evaluate',
-                                style: const TextStyle(
-                                  color: AppTheme.primaryColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    status == 'SUBMITTED' ? 'View' : 'Evaluate',
+                                    style: const TextStyle(
+                                      color: AppTheme.primaryColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
+                          trailing: const Icon(Icons.chevron_right_rounded, color: AppTheme.primaryColor),
                           onTap: () {
                             if (status == 'SUBMITTED' && evalId != null) {
                               context.go('/evaluation/$evalId');
@@ -397,6 +446,7 @@ class _TeamScreenState extends State<TeamScreen> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

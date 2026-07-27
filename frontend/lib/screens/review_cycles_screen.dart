@@ -8,6 +8,7 @@ import '../core/widgets/app_drawer.dart';
 import '../core/widgets/loading_widget.dart';
 import '../core/widgets/empty_state_widget.dart';
 import '../core/widgets/custom_error_widget.dart';
+import '../core/utils/responsive_utils.dart';
 
 class ReviewCyclesScreen extends StatefulWidget {
   const ReviewCyclesScreen({super.key});
@@ -160,7 +161,9 @@ class _ReviewCyclesScreenState extends State<ReviewCyclesScreen> {
       appBar: const CustomAppBar(title: 'Evaluation Review Cycles'),
       drawer: const AppDrawer(),
       backgroundColor: AppTheme.backgroundColor,
-      body: RefreshIndicator(
+      body: ResponsiveUtils.appBarBody(
+        context: context,
+        child: RefreshIndicator(
         onRefresh: () async {
           await hrProvider.fetchCycles();
         },
@@ -186,7 +189,7 @@ class _ReviewCyclesScreenState extends State<ReviewCyclesScreen> {
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.all(16.0),
+              padding: ResponsiveUtils.screenPadding(context),
               itemCount: cycles.length,
               itemBuilder: (context, index) {
                 final c = cycles[index];
@@ -204,29 +207,34 @@ class _ReviewCyclesScreenState extends State<ReviewCyclesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(10),
-                                  decoration: BoxDecoration(
-                                    color: (isActive ? AppTheme.successColor : AppTheme.primaryColor).withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(10),
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: (isActive ? AppTheme.successColor : AppTheme.primaryColor).withOpacity(0.12),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Icon(
+                                      Icons.calendar_month_rounded,
+                                      color: isActive ? AppTheme.successColor : AppTheme.primaryColor,
+                                      size: 24,
+                                    ),
                                   ),
-                                  child: Icon(
-                                    Icons.calendar_month_rounded,
-                                    color: isActive ? AppTheme.successColor : AppTheme.primaryColor,
-                                    size: 24,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      name,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
+                            const SizedBox(width: 8),
                             Chip(
                               label: Text(
                                 isActive ? 'ACTIVE CYCLE' : 'CLOSED',
@@ -276,6 +284,7 @@ class _ReviewCyclesScreenState extends State<ReviewCyclesScreen> {
             );
           },
         ),
+      ),
       ),
     );
   }

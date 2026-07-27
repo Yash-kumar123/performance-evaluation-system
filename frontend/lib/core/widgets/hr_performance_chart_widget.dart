@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
+import '../utils/responsive_utils.dart';
 
 class HRPerformanceChartWidget extends StatelessWidget {
   final List<dynamic> trendPoints;
@@ -59,30 +60,37 @@ class HRPerformanceChartWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Summary Metrics Row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.spaceBetween,
           children: [
             _buildStatBadge('Trend Avg', '${avgScore.toStringAsFixed(2)} / 5.0', AppTheme.primaryColor),
-            _buildStatBadge('Highest Cycle', maxScore > 0 ? '${maxScore.toStringAsFixed(2)}' : 'N/A', AppTheme.successColor),
-            _buildStatBadge('Lowest Cycle', minScore > 0 ? '${minScore.toStringAsFixed(2)}' : 'N/A', AppTheme.warningColor),
+            _buildStatBadge('Highest Cycle', maxScore > 0 ? maxScore.toStringAsFixed(2) : 'N/A', AppTheme.successColor),
+            _buildStatBadge('Lowest Cycle', minScore > 0 ? minScore.toStringAsFixed(2) : 'N/A', AppTheme.warningColor),
             _buildStatBadge('Total Reviews', '$totalSubmissions', AppTheme.secondaryColor),
           ],
         ),
         const SizedBox(height: 20),
 
         // Custom Visual Performance Trend Chart Canvas
-        Container(
-          height: 200,
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-          decoration: BoxDecoration(
-            color: AppTheme.backgroundColor,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.dividerColor),
-          ),
-          child: CustomPaint(
-            painter: PerformanceTrendPainter(trendPoints: trendPoints),
-          ),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            return Container(
+              height: ResponsiveUtils.chartHeight(context, compact: 180, expanded: 220),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.backgroundColor,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.borderSubtleColor),
+              ),
+              child: CustomPaint(
+                size: Size(constraints.maxWidth, ResponsiveUtils.chartHeight(context, compact: 180, expanded: 220)),
+                painter: PerformanceTrendPainter(trendPoints: trendPoints),
+              ),
+            );
+          },
         ),
         const SizedBox(height: 20),
 
@@ -104,9 +112,10 @@ class HRPerformanceChartWidget extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(cleanName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      Expanded(
+                        child: Text(cleanName, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      ),
                       Text('${score.toStringAsFixed(2)} / 5.0', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.primaryColor)),
                     ],
                   ),
@@ -143,7 +152,7 @@ class HRPerformanceChartWidget extends StatelessWidget {
         children: [
           Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
           const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 10, color: AppTheme.textSecondaryColor)),
+          Text(label, style: const TextStyle(fontSize: 10, color: AppTheme.textSecondaryColor)),
         ],
       ),
     );

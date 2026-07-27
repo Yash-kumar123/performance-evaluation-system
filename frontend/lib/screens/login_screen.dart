@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../core/config/app_config.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/auth_provider.dart';
+import '../core/utils/responsive_utils.dart';
+import '../core/widgets/app_logo.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -81,10 +84,14 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 32.0),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: Column(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: ResponsiveUtils.scrollPadding(
+              context,
+              base: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 32.0),
+            ),
+            child: ResponsiveUtils.constrainedContent(
+              context,
+              Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Main Centered Box Container Structure
@@ -120,27 +127,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           child: Column(
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.analytics_rounded,
-                                  size: 40,
-                                  color: Colors.white,
-                                ),
-                              ),
+                              const AppLogo(size: 88),
                               const SizedBox(height: 12),
-                              const Text(
-                                'Performance Evaluation System',
-                                style: TextStyle(
+                              Text(
+                                AppConfig.appName,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 20,
                                   color: Colors.white,
                                 ),
                                 textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -241,24 +239,25 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ],
 
                                 // Submit Button
-                                ElevatedButton(
-                                  onPressed: isLoading ? null : _handleLogin,
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                  ),
-                                  child: isLoading
-                                      ? const SizedBox(
-                                          height: 20,
-                                          width: 20,
-                                          child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2.5,
+                                Semantics(
+                                  button: true,
+                                  label: 'Sign in to your account',
+                                  child: ResponsiveUtils.primaryButton(
+                                    onPressed: isLoading ? null : _handleLogin,
+                                    child: isLoading
+                                        ? const SizedBox(
+                                            height: 20,
+                                            width: 20,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2.5,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Sign In',
+                                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                           ),
-                                        )
-                                      : const Text(
-                                          'Sign In',
-                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                        ),
+                                  ),
                                 ),
                               ],
                             ),

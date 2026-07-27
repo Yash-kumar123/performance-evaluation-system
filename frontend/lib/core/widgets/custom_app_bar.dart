@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../config/app_theme.dart';
 import '../providers/auth_provider.dart';
+import '../utils/responsive_utils.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -26,6 +27,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final user = auth.user;
 
     final bool canGoBack = showBackButton ?? (context.canPop() && !showDrawerButton);
+    final isCompact = ResponsiveUtils.isCompact(context);
 
     return AppBar(
       title: Text(title),
@@ -51,10 +53,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             )
           : null,
       actions: [
-        if (user != null)
+        if (user != null && !isCompact)
           Padding(
             padding: const EdgeInsets.only(right: 12.0),
-            child: Chip(
+            child: Semantics(
+              label: 'Signed in as ${user.fullName}, role ${user.role}',
+              child: Chip(
               avatar: CircleAvatar(
                 backgroundColor: AppTheme.primaryColor.withOpacity(0.15),
                 child: Text(
@@ -76,6 +80,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               ),
               backgroundColor: AppTheme.primaryColor.withOpacity(0.08),
               side: BorderSide.none,
+            ),
             ),
           ),
         ...?actions,

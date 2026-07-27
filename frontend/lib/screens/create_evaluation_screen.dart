@@ -5,6 +5,7 @@ import '../core/config/app_config.dart';
 import '../core/config/app_theme.dart';
 import '../core/providers/manager_provider.dart';
 import '../core/widgets/custom_app_bar.dart';
+import '../core/utils/responsive_utils.dart';
 
 class CreateEvaluationScreen extends StatefulWidget {
   final String employeeId;
@@ -116,6 +117,7 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
     final isLoading = mgrProvider.isLoadingSubmitting;
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: CustomAppBar(
         title: 'Evaluate ${widget.employeeName}',
         showDrawerButton: false,
@@ -129,13 +131,16 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
         },
       ),
       backgroundColor: AppTheme.backgroundColor,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: ResponsiveUtils.appBarBody(
+        context: context,
+        scrollable: true,
+        child: ResponsiveUtils.constrainedContent(
+          context,
+          Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
               // Employee Banner
               Card(
                 child: Padding(
@@ -226,28 +231,33 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
                           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
                           children: List.generate(5, (scoreIdx) {
                             final scoreVal = scoreIdx + 1;
                             final isSelected = currentScore == scoreVal;
 
-                            return ChoiceChip(
-                              label: Text('$scoreVal ★'),
+                            return Semantics(
+                              label: 'Score $scoreVal out of 5',
                               selected: isSelected,
-                              selectedColor: AppTheme.primaryColor,
-                              labelStyle: TextStyle(
-                                color: isSelected ? Colors.white : AppTheme.textPrimaryColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                              child: ChoiceChip(
+                                label: Text('$scoreVal ★'),
+                                selected: isSelected,
+                                selectedColor: AppTheme.primaryColor,
+                                labelStyle: TextStyle(
+                                  color: isSelected ? Colors.white : AppTheme.textPrimaryColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() {
+                                      _scores[code] = scoreVal;
+                                    });
+                                  }
+                                },
                               ),
-                              onSelected: (selected) {
-                                if (selected) {
-                                  setState(() {
-                                    _scores[code] = scoreVal;
-                                  });
-                                }
-                              },
                             );
                           }),
                         ),
@@ -284,16 +294,20 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
               const SizedBox(height: 28),
 
               // Action Buttons Row (Save Draft vs Submit)
-              Row(
-                children: [
-                  Expanded(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 480;
+                  final saveDraftButton = SizedBox(
+                    height: ResponsiveUtils.primaryButtonMinHeight,
+                    width: isCompact ? double.infinity : null,
                     child: OutlinedButton(
                       onPressed: isLoading ? null : () => _submitOrSaveDraft(isSubmit: false),
                       child: const Text('Save Draft'),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
+                  );
+                  final submitButton = SizedBox(
+                    height: ResponsiveUtils.primaryButtonMinHeight,
+                    width: isCompact ? double.infinity : null,
                     child: ElevatedButton(
                       onPressed: isLoading ? null : () => _submitOrSaveDraft(isSubmit: true),
                       child: isLoading
@@ -304,13 +318,33 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
                             )
                           : const Text('Finalize & Submit'),
                     ),
-                  ),
-                ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        saveDraftButton,
+                        const SizedBox(height: 12),
+                        submitButton,
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: saveDraftButton),
+                      const SizedBox(width: 16),
+                      Expanded(child: submitButton),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 30),
             ],
           ),
         ),
+      ),
       ),
     );
   }
