@@ -80,8 +80,30 @@ CREATE TABLE IF NOT EXISTS evaluation_scores (
   CONSTRAINT uq_eval_parameter UNIQUE (evaluation_id, parameter_id)
 );
 
+-- 7. PROJECT TEAMS
+CREATE TABLE IF NOT EXISTS project_teams (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
+  name VARCHAR(255) NOT NULL,
+  code VARCHAR(50),
+  description TEXT,
+  lead_manager_id UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. PROJECT TEAM MEMBERS
+CREATE TABLE IF NOT EXISTS project_team_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  team_id UUID NOT NULL REFERENCES project_teams(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT uq_team_user UNIQUE (team_id, user_id)
+);
+
 -- INDEXES
 CREATE INDEX IF NOT EXISTS idx_users_tenant_manager ON users(company_id, manager_id);
 CREATE INDEX IF NOT EXISTS idx_evaluations_hr_tracker ON evaluations(company_id, cycle_id, status, manager_id);
 CREATE INDEX IF NOT EXISTS idx_evaluations_employee_history ON evaluations(company_id, employee_id, cycle_id);
 CREATE INDEX IF NOT EXISTS idx_scores_agg_trends ON evaluation_scores(evaluation_id, parameter_id, score);
+CREATE INDEX IF NOT EXISTS idx_project_teams_tenant ON project_teams(company_id);

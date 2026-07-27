@@ -19,7 +19,7 @@ async function runSeed() {
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     // 3. Clear Existing Data (Clean Seed Reset)
-    await db.query('TRUNCATE TABLE companies, users, evaluation_cycles, evaluation_parameters, evaluations, evaluation_scores CASCADE');
+    await db.query('TRUNCATE TABLE companies, users, evaluation_cycles, evaluation_parameters, evaluations, evaluation_scores, project_teams, project_team_members CASCADE');
     console.log('✔ Existing data truncated.');
 
     // 4. Seed Companies
@@ -167,8 +167,63 @@ async function runSeed() {
     }
     console.log('✔ Bright Path Consulting Users seeded (Founder -> 8 Employees + HR).');
 
-    // 9. Seed Sample Evaluations & Parameter Scores for Trend & History Testing
-    // Sample Helper function to insert evaluation with 5 parameter scores
+    // 9. Seed Project Teams for both companies
+    // Ashoka Textiles Project Teams
+    const teamAshoka1 = (await db.query(
+      `INSERT INTO project_teams (company_id, name, code, description, lead_manager_id)
+       VALUES ($1, 'Yarn Quality Taskforce', 'PRJ-ASH-01', 'Dedicated team overseeing yarn strength and fabric quality control.', $2) RETURNING id`,
+      [ashokaId, priya]
+    )).rows[0].id;
+
+    for (let i = 0; i < 3; i++) {
+      await db.query(
+        `INSERT INTO project_team_members (team_id, user_id) VALUES ($1, $2)`,
+        [teamAshoka1, ashokaEmployees[i].id]
+      );
+    }
+
+    const teamAshoka2 = (await db.query(
+      `INSERT INTO project_teams (company_id, name, code, description, lead_manager_id)
+       VALUES ($1, 'Plant Automation Taskforce', 'PRJ-ASH-02', 'Modernizing loom machinery and automated weave telemetry.', $2) RETURNING id`,
+      [ashokaId, rohan]
+    )).rows[0].id;
+
+    for (let i = 3; i < 6; i++) {
+      await db.query(
+        `INSERT INTO project_team_members (team_id, user_id) VALUES ($1, $2)`,
+        [teamAshoka2, ashokaEmployees[i].id]
+      );
+    }
+
+    // Bright Path Consulting Project Teams
+    const teamBright1 = (await db.query(
+      `INSERT INTO project_teams (company_id, name, code, description, lead_manager_id)
+       VALUES ($1, 'Strategic Growth Advisory', 'PRJ-BP-01', 'High-impact enterprise strategy and market expansion advisory team.', $2) RETURNING id`,
+      [brightId, founder]
+    )).rows[0].id;
+
+    for (let i = 0; i < 4; i++) {
+      await db.query(
+        `INSERT INTO project_team_members (team_id, user_id) VALUES ($1, $2)`,
+        [teamBright1, brightEmployees[i].id]
+      );
+    }
+
+    const teamBright2 = (await db.query(
+      `INSERT INTO project_teams (company_id, name, code, description, lead_manager_id)
+       VALUES ($1, 'Digital Transformation Practice', 'PRJ-BP-02', 'Data analytics, cloud migration, and IT operating model advisory.', $2) RETURNING id`,
+      [brightId, founder]
+    )).rows[0].id;
+
+    for (let i = 4; i < 8; i++) {
+      await db.query(
+        `INSERT INTO project_team_members (team_id, user_id) VALUES ($1, $2)`,
+        [teamBright2, brightEmployees[i].id]
+      );
+    }
+    console.log('✔ Project Teams seeded for both Ashoka Textiles and Bright Path Consulting.');
+
+    // 10. Seed Sample Evaluations & Parameter Scores for Trend & History Testing
     const seedEvaluation = async (companyId, cycleId, employeeId, managerId, status, summary, scoresArray) => {
       const evalRes = await db.query(
         `INSERT INTO evaluations (company_id, cycle_id, employee_id, manager_id, status, summary_comment, submitted_at)
@@ -191,7 +246,6 @@ async function runSeed() {
     };
 
     // --- Ashoka Textiles Historical & Current Evaluations ---
-    // Priya evaluated by Rohan (June & July)
     await seedEvaluation(ashokaId, ashokaCycles['2026-05'], priya, rohan, 'SUBMITTED', 'Priya demonstrated good management of plant machinery.', [
       { score: 4, comment: 'High quality plant operation management.' },
       { score: 3, comment: 'Good productivity across production shifts.' },
@@ -208,8 +262,6 @@ async function runSeed() {
       { score: 5, comment: 'Very reliable leadership.' }
     ]);
 
-    // Priya evaluates her 6 employees
-    // May 2026 (Submitted for all 6)
     for (let i = 0; i < ashokaEmployees.length; i++) {
       const emp = ashokaEmployees[i];
       await seedEvaluation(ashokaId, ashokaCycles['2026-05'], emp.id, priya, 'SUBMITTED', `${emp.full_name} showed steady performance in May.`, [
@@ -221,7 +273,6 @@ async function runSeed() {
       ]);
     }
 
-    // June 2026 (Submitted for all 6)
     for (let i = 0; i < ashokaEmployees.length; i++) {
       const emp = ashokaEmployees[i];
       await seedEvaluation(ashokaId, ashokaCycles['2026-06'], emp.id, priya, 'SUBMITTED', `${emp.full_name} improved technical quality in June.`, [
@@ -233,7 +284,6 @@ async function runSeed() {
       ]);
     }
 
-    // July 2026 (Current Active Cycle: 4 Submitted, 2 Pending to demonstrate HR status)
     for (let i = 0; i < ashokaEmployees.length; i++) {
       const emp = ashokaEmployees[i];
       const status = i < 4 ? 'SUBMITTED' : 'PENDING';
@@ -247,8 +297,6 @@ async function runSeed() {
     }
 
     // --- Bright Path Consulting Historical & Current Evaluations ---
-    // Founder evaluates 8 Employees
-    // June 2026 (Submitted for all 8)
     for (let i = 0; i < brightEmployees.length; i++) {
       const emp = brightEmployees[i];
       await seedEvaluation(brightId, brightCycles['2026-06'], emp.id, founder, 'SUBMITTED', `Excellent consulting contribution from ${emp.full_name}.`, [
@@ -260,7 +308,6 @@ async function runSeed() {
       ]);
     }
 
-    // July 2026 (Current Active Cycle: 5 Submitted, 3 Pending)
     for (let i = 0; i < brightEmployees.length; i++) {
       const emp = brightEmployees[i];
       const status = i < 5 ? 'SUBMITTED' : 'PENDING';
