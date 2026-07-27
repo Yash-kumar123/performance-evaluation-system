@@ -48,6 +48,42 @@ class HRController {
     }
   }
 
+  static async getAllUsers(req, res, next) {
+    try {
+      const users = await HRService.getAllUsers(req.tenantId);
+      return sendSuccess(res, 200, 'Team members retrieved successfully', users);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async createUser(req, res, next) {
+    try {
+      const user = await HRService.createUser(req.tenantId, req.body);
+      return sendSuccess(res, 201, 'Team member added successfully', user);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateUser(req, res, next) {
+    try {
+      const user = await HRService.updateUser(req.tenantId, req.params.id, req.body);
+      return sendSuccess(res, 200, 'Team member details updated successfully', user);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteUser(req, res, next) {
+    try {
+      const user = await HRService.deleteUser(req.tenantId, req.params.id);
+      return sendSuccess(res, 200, 'Team member deactivated successfully', user);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async assignManager(req, res, next) {
     try {
       const { employeeId, managerId } = req.body;

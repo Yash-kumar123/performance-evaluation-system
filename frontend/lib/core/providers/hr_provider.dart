@@ -6,8 +6,10 @@ class HRProvider with ChangeNotifier {
 
   bool _isLoadingDashboard = false;
   bool _isLoadingAction = false;
+  bool _isLoadingUsers = false;
   String? _errorDashboard;
   String? _errorAction;
+  String? _errorUsers;
 
   Map<String, dynamic>? _cycle;
   Map<String, dynamic>? _metrics;
@@ -15,11 +17,14 @@ class HRProvider with ChangeNotifier {
   List<dynamic> _pendingManagers = [];
   List<dynamic> _completedManagers = [];
   List<dynamic> _cyclesList = [];
+  List<dynamic> _usersList = [];
 
   bool get isLoadingDashboard => _isLoadingDashboard;
   bool get isLoadingAction => _isLoadingAction;
+  bool get isLoadingUsers => _isLoadingUsers;
   String? get errorDashboard => _errorDashboard;
   String? get errorAction => _errorAction;
+  String? get errorUsers => _errorUsers;
 
   Map<String, dynamic>? get cycle => _cycle;
   Map<String, dynamic>? get metrics => _metrics;
@@ -27,6 +32,7 @@ class HRProvider with ChangeNotifier {
   List<dynamic> get pendingManagers => _pendingManagers;
   List<dynamic> get completedManagers => _completedManagers;
   List<dynamic> get cyclesList => _cyclesList;
+  List<dynamic> get usersList => _usersList;
 
   // Calculated HR Metrics
   int get totalEmployees => _metrics?['totalEmployees'] ?? 0;
@@ -69,6 +75,144 @@ class HRProvider with ChangeNotifier {
     } finally {
       _isLoadingDashboard = false;
       notifyListeners();
+    }
+  }
+
+  /// Fetch All Users / Team Members for Company (HR Teams Management)
+  Future<void> fetchUsers() async {
+    _isLoadingUsers = true;
+    _errorUsers = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.get('/hr/users');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        _usersList = response.data['data'] ?? [];
+      } else {
+        _errorUsers = response.data['message'] ?? 'Failed to load team members.';
+      }
+    } catch (e) {
+      _errorUsers = e.toString().replaceAll('Exception:', '').trim();
+    } finally {
+      _isLoadingUsers = false;
+      notifyListeners();
+    }
+  }
+
+  /// Add New Team Member (HR Feature)
+  Future<bool> createUser({
+    required String fullName,
+    required String email,
+    required String password,
+    required String role,
+    String? jobTitle,
+    String? department,
+    String? managerId,
+  }) async {
+    _isLoadingAction = true;
+    _errorAction = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.post('/hr/users', data: {
+        'fullName': fullName,
+        'email': email,
+        'password': password,
+        'role': role,
+        'jobTitle': jobTitle,
+        'department': department,
+        'managerId': managerId,
+      });
+
+      if (response.statusCode == 201 && response.data['success'] == true) {
+        await fetchUsers();
+        await fetchDashboard();
+        _isLoadingAction = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorAction = response.data['message'] ?? 'Failed to add team member.';
+        _isLoadingAction = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorAction = e.toString().replaceAll('Exception:', '').trim();
+      _isLoadingAction = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update Team Member Details (HR Feature)
+  Future<bool> updateUser({
+    required String userId,
+    required String fullName,
+    required String role,
+    String? jobTitle,
+    String? department,
+    String? managerId,
+    bool isActive = true,
+  }) async {
+    _isLoadingAction = true;
+    _errorAction = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.put('/hr/users/$userId', data: {
+        'fullName': fullName,
+        'role': role,
+        'jobTitle': jobTitle,
+        'department': department,
+        'managerId': managerId,
+        'isActive': isActive,
+      });
+
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        await fetchUsers();
+        await fetchDashboard();
+        _isLoadingAction = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorAction = response.data['message'] ?? 'Failed to update team member.';
+        _isLoadingAction = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorAction = e.toString().replaceAll('Exception:', '').trim();
+      _isLoadingAction = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Delete / Deactivate Team Member (HR Feature)
+  Future<bool> deleteUser(String userId) async {
+    _isLoadingAction = true;
+    _errorAction = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiClient.delete('/hr/users/$userId');
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        await fetchUsers();
+        await fetchDashboard();
+        _isLoadingAction = false;
+        notifyListeners();
+        return true;
+      } else {
+        _errorAction = response.data['message'] ?? 'Failed to remove team member.';
+        _isLoadingAction = false;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorAction = e.toString().replaceAll('Exception:', '').trim();
+      _isLoadingAction = false;
+      notifyListeners();
+      return false;
     }
   }
 
@@ -209,6 +353,7 @@ class HRProvider with ChangeNotifier {
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         await fetchDashboard();
+        await fetchUsers();
         _isLoadingAction = false;
         notifyListeners();
         return true;

@@ -10,28 +10,24 @@ router.use(authenticateJWT, authorizeRoles('HR'));
 // GET /api/hr/dashboard
 router.get('/dashboard', HRController.getDashboard);
 
-// POST /api/hr/cycles (Date-wise Cycle Creation)
+// HR Team & Users Management Routes
+router.get('/users', HRController.getAllUsers);
+router.post('/users', HRController.createUser);
+router.put('/users/:id', HRController.updateUser);
+router.delete('/users/:id', HRController.deleteUser);
+
+// Date-wise Cycle Management Routes
 router.post('/cycles', HRController.createCycle);
-
-// PUT /api/hr/cycles/:id (Update Cycle)
 router.put('/cycles/:id', HRController.updateCycle);
-
-// DELETE /api/hr/cycles/:id (Delete Cycle)
 router.delete('/cycles/:id', HRController.deleteCycle);
-
-// GET /api/hr/cycles
 router.get('/cycles', HRController.getCycles);
 
-// PATCH /api/hr/assign-manager (Assign employee to manager)
+// Manager Assignment Route
 router.patch('/assign-manager', HRController.assignManager);
 
-// GET /api/hr/managers
+// Manager Submissions Tracking Routes
 router.get('/managers', HRController.getManagerSubmissions);
-
-// GET /api/hr/submissions/pending
 router.get('/submissions/pending', HRController.getPendingSubmissions);
-
-// GET /api/hr/submissions/completed
 router.get('/submissions/completed', HRController.getCompletedSubmissions);
 
 module.exports = router;

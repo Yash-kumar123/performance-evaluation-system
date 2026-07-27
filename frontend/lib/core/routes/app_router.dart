@@ -10,9 +10,11 @@ import '../../screens/hr_dashboard_screen.dart';
 import '../../screens/managers_progress_screen.dart';
 import '../../screens/pending_reviews_screen.dart';
 import '../../screens/completed_reviews_screen.dart';
+import '../../screens/hr_teams_screen.dart';
 import '../../screens/profile_screen.dart';
 import '../../screens/evaluation_details_screen.dart';
 import '../../screens/history_screen.dart';
+import '../../screens/review_cycles_screen.dart';
 
 class AppRouter {
   static final router = GoRouter(
@@ -71,6 +73,11 @@ class AppRouter {
         builder: (context, state) => const HRDashboardScreen(),
       ),
       GoRoute(
+        path: '/hr/teams',
+        name: 'hr_teams',
+        builder: (context, state) => const HRTeamsScreen(),
+      ),
+      GoRoute(
         path: '/hr/managers',
         name: 'managers_progress',
         builder: (context, state) => const ManagersProgressScreen(),
@@ -87,6 +94,11 @@ class AppRouter {
       ),
 
       // Shared Navigation Routes
+      GoRoute(
+        path: '/cycles',
+        name: 'review_cycles',
+        builder: (context, state) => const ReviewCyclesScreen(),
+      ),
       GoRoute(
         path: '/profile',
         name: 'profile',

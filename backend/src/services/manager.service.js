@@ -10,10 +10,16 @@ class ManagerService {
   }
 
   /**
-   * Get team evaluation status for active cycle
+   * Get team evaluation status for active cycle (with fallback to latest cycle)
    */
   static async getTeamStatus(managerId, companyId) {
-    const activeCycle = await EvaluationRepository.getActiveCycle(companyId);
+    let activeCycle = await EvaluationRepository.getActiveCycle(companyId);
+    
+    if (!activeCycle) {
+      const cycles = await EvaluationRepository.getCycles(companyId);
+      activeCycle = cycles[0] || null;
+    }
+
     if (!activeCycle) {
       return {
         cycle: null,

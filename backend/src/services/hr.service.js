@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const EvaluationRepository = require('../repositories/evaluation.repository');
 const UserRepository = require('../repositories/user.repository');
 const AppError = require('../utils/AppError');
@@ -82,6 +83,66 @@ class HRService {
    */
   static async getCycles(companyId) {
     return await EvaluationRepository.getCycles(companyId);
+  }
+
+  /**
+   * Get all users / team members for company (HR Teams Management)
+   */
+  static async getAllUsers(companyId) {
+    return await UserRepository.findAllUsers(companyId);
+  }
+
+  /**
+   * Add new user / team member / manager (HR Teams Management)
+   */
+  static async createUser(companyId, payload) {
+    const { email, password, fullName, role = 'EMPLOYEE', managerId, jobTitle, department } = payload;
+
+    if (!email || !password || !fullName) {
+      throw new AppError('Email, password, and fullName are required.', 400);
+    }
+
+    const existingUser = await UserRepository.findByEmail(email, companyId);
+    if (existingUser) {
+      throw new AppError('A user with this email address already exists in the company.', 409);
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    return await UserRepository.createUser({
+      companyId,
+      email,
+      passwordHash,
+      fullName,
+      role,
+      managerId,
+      jobTitle,
+      department
+    });
+  }
+
+  /**
+   * Update user details / role / manager assignment (HR Teams Management)
+   */
+  static async updateUser(companyId, userId, payload) {
+    const existingUser = await UserRepository.findById(userId, companyId);
+    if (!existingUser) {
+      throw new AppError('Team member not found.', 404);
+    }
+
+    return await UserRepository.updateUser(userId, companyId, payload);
+  }
+
+  /**
+   * Deactivate / delete team member (HR Teams Management)
+   */
+  static async deleteUser(companyId, userId) {
+    const existingUser = await UserRepository.findById(userId, companyId);
+    if (!existingUser) {
+      throw new AppError('Team member not found.', 404);
+    }
+
+    return await UserRepository.deleteUser(userId, companyId);
   }
 
   /**
