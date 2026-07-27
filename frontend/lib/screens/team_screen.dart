@@ -19,6 +19,7 @@ class TeamScreen extends StatefulWidget {
 class _TeamScreenState extends State<TeamScreen> {
   final _searchController = TextEditingController();
   String _selectedFilter = 'ALL';
+  bool _initializedFilterFromUrl = false;
 
   @override
   void initState() {
@@ -26,6 +27,19 @@ class _TeamScreenState extends State<TeamScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadData();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initializedFilterFromUrl) {
+      final uri = GoRouterState.of(context).uri;
+      final queryFilter = uri.queryParameters['filter'];
+      if (queryFilter != null && queryFilter.isNotEmpty) {
+        _selectedFilter = queryFilter;
+      }
+      _initializedFilterFromUrl = true;
+    }
   }
 
   void _loadData() {
@@ -183,13 +197,25 @@ class _TeamScreenState extends State<TeamScreen> {
       final status = item['status'] ?? 'NOT_STARTED';
 
       final matchesQuery = name.contains(query) || title.contains(query);
-      final matchesFilter = _selectedFilter == 'ALL' || status == _selectedFilter;
+      final matchesFilter = _selectedFilter == 'ALL' ||
+          status == _selectedFilter ||
+          (_selectedFilter == 'PENDING' && (status == 'PENDING' || status == 'NOT_STARTED'));
 
       return matchesQuery && matchesFilter;
     }).toList();
 
     return Scaffold(
-      appBar: const CustomAppBar(title: 'My Direct Team'),
+      appBar: CustomAppBar(
+        title: 'My Direct Team',
+        showBackButton: true,
+        onBackPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go('/manager');
+          }
+        },
+      ),
       drawer: const AppDrawer(),
       backgroundColor: AppTheme.backgroundColor,
       body: Column(
@@ -244,9 +270,7 @@ class _TeamScreenState extends State<TeamScreen> {
                           children: [
                             _buildFilterChip('ALL', 'All Reports'),
                             const SizedBox(width: 8),
-                            _buildFilterChip('NOT_STARTED', 'Not Started'),
-                            const SizedBox(width: 8),
-                            _buildFilterChip('PENDING', 'Draft Saved'),
+                            _buildFilterChip('PENDING', 'Pending Reviews'),
                             const SizedBox(width: 8),
                             _buildFilterChip('SUBMITTED', 'Submitted'),
                           ],

@@ -83,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 32.0),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
+              constraints: const BoxConstraints(maxWidth: 520),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -108,7 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
                                 AppTheme.primaryColor,
@@ -269,52 +269,134 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Quick Demo Account Helpers Box
+                  // Multi-Company Quick Demo Presets Card
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppTheme.borderSubtleColor, width: 1),
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Quick Demo Account Presets',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: AppTheme.textSecondaryColor,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          alignment: WrapAlignment.center,
+                        const Row(
                           children: [
-                            ActionChip(
-                              avatar: const Icon(Icons.person, size: 14),
-                              label: const Text('Aarav (Employee)', style: TextStyle(fontSize: 12)),
-                              onPressed: () => _fillPresetCredentials('aarav@ashoka.com', 'Password123!'),
-                            ),
-                            ActionChip(
-                              avatar: const Icon(Icons.supervisor_account, size: 14),
-                              label: const Text('Priya (Manager)', style: TextStyle(fontSize: 12)),
-                              onPressed: () => _fillPresetCredentials('priya@ashoka.com', 'Password123!'),
-                            ),
-                            ActionChip(
-                              avatar: const Icon(Icons.admin_panel_settings, size: 14),
-                              label: const Text('Neha (HR Admin)', style: TextStyle(fontSize: 12)),
-                              onPressed: () => _fillPresetCredentials('hr@ashoka.com', 'Password123!'),
-                            ),
-                            ActionChip(
-                              avatar: const Icon(Icons.store, size: 14),
-                              label: const Text('Vikram (Founder)', style: TextStyle(fontSize: 12)),
-                              onPressed: () => _fillPresetCredentials('founder@brightpath.com', 'Password123!'),
+                            Icon(Icons.touch_app_rounded, color: AppTheme.primaryColor, size: 18),
+                            SizedBox(width: 8),
+                            Text(
+                              'Quick Demo Login Presets (Multi-Tenant Demo)',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: AppTheme.textPrimaryColor,
+                              ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 14),
+
+                        // Company 1: Ashoka Textiles
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.primaryColor.withOpacity(0.12)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.business_rounded, color: AppTheme.primaryColor, size: 15),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Ashoka Textiles (Enterprise Hierarchy)',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.primaryColor),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  ActionChip(
+                                    avatar: const Icon(Icons.admin_panel_settings, size: 13),
+                                    label: const Text('Neha (HR Admin)', style: TextStyle(fontSize: 11)),
+                                    onPressed: () => _fillPresetCredentials('hr@ashoka.com', 'Password123!'),
+                                  ),
+                                  ActionChip(
+                                    avatar: const Icon(Icons.shield_outlined, size: 13),
+                                    label: const Text('Rajesh (COO)', style: TextStyle(fontSize: 11)),
+                                    onPressed: () => _fillPresetCredentials('coo@ashoka.com', 'Password123!'),
+                                  ),
+                                  ActionChip(
+                                    avatar: const Icon(Icons.supervisor_account, size: 13),
+                                    label: const Text('Priya (Manager)', style: TextStyle(fontSize: 11)),
+                                    onPressed: () => _fillPresetCredentials('priya@ashoka.com', 'Password123!'),
+                                  ),
+                                  ActionChip(
+                                    avatar: const Icon(Icons.person_outline, size: 13),
+                                    label: const Text('Aarav (Employee)', style: TextStyle(fontSize: 11)),
+                                    onPressed: () => _fillPresetCredentials('aarav@ashoka.com', 'Password123!'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Company 2: Bright Path Consulting
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.secondaryColor.withOpacity(0.04),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.secondaryColor.withOpacity(0.12)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(Icons.storefront_rounded, color: AppTheme.secondaryColor, size: 15),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Bright Path Consulting (Flat Structure)',
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppTheme.secondaryColor),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                children: [
+                                  ActionChip(
+                                    avatar: const Icon(Icons.admin_panel_settings, size: 13),
+                                    label: const Text('Siddharth (HR Head)', style: TextStyle(fontSize: 11)),
+                                    onPressed: () => _fillPresetCredentials('hr@brightpath.com', 'Password123!'),
+                                  ),
+                                  ActionChip(
+                                    avatar: const Icon(Icons.workspace_premium, size: 13),
+                                    label: const Text('Vikram (Founder & Mgr)', style: TextStyle(fontSize: 11)),
+                                    onPressed: () => _fillPresetCredentials('founder@brightpath.com', 'Password123!'),
+                                  ),
+                                  ActionChip(
+                                    avatar: const Icon(Icons.person_outline, size: 13),
+                                    label: const Text('Aditi (Consultant)', style: TextStyle(fontSize: 11)),
+                                    onPressed: () => _fillPresetCredentials('aditi@brightpath.com', 'Password123!'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),

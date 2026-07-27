@@ -2,8 +2,8 @@ const { body, param } = require('express-validator');
 
 const createEvaluationValidator = [
   body('cycleId')
-    .notEmpty().withMessage('Evaluation cycle ID is required.')
-    .isUUID().withMessage('Invalid evaluation cycle UUID format.'),
+    .optional({ checkFalsy: true })
+    .isString(),
 
   body('employeeId')
     .notEmpty().withMessage('Employee ID is required.')
@@ -13,17 +13,21 @@ const createEvaluationValidator = [
     .isArray({ min: 5, max: 5 }).withMessage('Evaluation must contain scores for exactly 5 parameters.'),
 
   body('scores.*.parameterId')
-    .notEmpty().withMessage('Parameter ID is required.')
-    .isUUID().withMessage('Invalid parameter UUID format.'),
+    .optional({ checkFalsy: true })
+    .isString(),
+
+  body('scores.*.parameterCode')
+    .optional({ checkFalsy: true })
+    .isString(),
 
   body('scores.*.score')
     .notEmpty().withMessage('Numeric score is required.')
+    .toInt()
     .isInt({ min: 1, max: 5 }).withMessage('Score must be an integer between 1 and 5.'),
 
   body('scores.*.comment')
-    .trim()
-    .notEmpty().withMessage('Written comment is required.')
-    .isLength({ min: 5 }).withMessage('Comment must be at least 5 characters long.'),
+    .optional({ checkFalsy: true })
+    .trim(),
 
   body('summaryComment')
     .optional()
@@ -43,17 +47,21 @@ const updateEvaluationValidator = [
     .isArray({ min: 5, max: 5 }).withMessage('Evaluation must contain scores for exactly 5 parameters.'),
 
   body('scores.*.parameterId')
-    .optional()
-    .isUUID().withMessage('Invalid parameter UUID format.'),
+    .optional({ checkFalsy: true })
+    .isString(),
+
+  body('scores.*.parameterCode')
+    .optional({ checkFalsy: true })
+    .isString(),
 
   body('scores.*.score')
     .optional()
+    .toInt()
     .isInt({ min: 1, max: 5 }).withMessage('Score must be an integer between 1 and 5.'),
 
   body('scores.*.comment')
-    .optional()
-    .trim()
-    .isLength({ min: 5 }).withMessage('Comment must be at least 5 characters long.'),
+    .optional({ checkFalsy: true })
+    .trim(),
 
   body('summaryComment')
     .optional()

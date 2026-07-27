@@ -36,19 +36,29 @@ class EvaluationService {
       throw new AppError('Forbidden: Target employee is not in your direct reporting chain.', 403);
     }
 
-    // 2. Verify cycle exists for company
-    const cycle = await EvaluationRepository.findCycleById(cycleId, companyId);
+    // 2. Resolve cycleId (fallback to active cycle if omitted or empty)
+    let targetCycleId = cycleId;
+    if (!targetCycleId) {
+      const activeCycle = await EvaluationRepository.getActiveCycle(companyId);
+      if (!activeCycle) {
+        throw new AppError('No active evaluation cycle found for this company.', 404);
+      }
+      targetCycleId = activeCycle.id;
+    }
+
+    const cycle = await EvaluationRepository.findCycleById(targetCycleId, companyId);
     if (!cycle) {
       throw new AppError('Invalid evaluation cycle for this tenant company.', 404);
     }
 
-    // 3. Prevent duplicate submission for same employee and cycle
-    const existing = await EvaluationRepository.findByEmployeeAndCycle(employeeId, cycleId, companyId);
+    // 3. Handle existing evaluations for same employee and cycle (upsert existing draft)
+    const existing = await EvaluationRepository.findByEmployeeAndCycle(employeeId, targetCycleId, companyId);
     if (existing) {
       if (existing.status === 'SUBMITTED') {
         throw new AppError('Conflict: Evaluation for this employee in this cycle has already been finalized and submitted.', 409);
       } else {
-        throw new AppError('Conflict: A draft evaluation already exists for this employee in this cycle. Please update the existing draft.', 409);
+        // Automatically update the existing draft
+        return await this.updateDraftEvaluation(existing.id, managerId, companyId, payload);
       }
     }
 
@@ -61,7 +71,7 @@ class EvaluationService {
 
     const evaluation = await EvaluationRepository.createEvaluationTransaction({
       companyId,
-      cycleId,
+      cycleId: targetCycleId,
       employeeId,
       managerId,
       status,

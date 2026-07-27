@@ -28,41 +28,26 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
   final _formKey = GlobalKey<FormState>();
   final _summaryCommentController = TextEditingController();
 
-  // 5 Fixed Parameters State Map: { parameterCode: { score: int, commentController: TextEditingController } }
+  // 5 Fixed Parameters State Map: { parameterCode: score }
   final Map<String, int> _scores = {};
-  final Map<String, TextEditingController> _commentControllers = {};
 
   @override
   void initState() {
     super.initState();
-    // Initialize form controllers for all 5 fixed parameters
+    // Initialize default score ratings for all 5 fixed parameters
     for (final param in AppConfig.fixedParameters) {
       final code = param['code']!;
       _scores[code] = 4; // Default rating score
-      _commentControllers[code] = TextEditingController();
     }
   }
 
   @override
   void dispose() {
     _summaryCommentController.dispose();
-    for (final controller in _commentControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
   }
 
   Future<void> _submitOrSaveDraft({required bool isSubmit}) async {
-    if (!_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please complete written comments (min 5 characters) for all 5 parameters.'),
-          backgroundColor: AppTheme.errorColor,
-        ),
-      );
-      return;
-    }
-
     final mgrProvider = Provider.of<ManagerProvider>(context, listen: false);
 
     final payloadScores = AppConfig.fixedParameters.map((param) {
@@ -71,12 +56,16 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
         'parameterCode': code,
         'parameterId': _getParameterIdForCode(code),
         'score': _scores[code] ?? 4,
-        'comment': _commentControllers[code]!.text.trim(),
+        'comment': '',
       };
     }).toList();
 
+    final effectiveCycleId = widget.cycleId.isNotEmpty
+        ? widget.cycleId
+        : (mgrProvider.activeCycle?['id'] as String? ?? '');
+
     final success = await mgrProvider.createOrUpdateEvaluation(
-      cycleId: widget.cycleId,
+      cycleId: effectiveCycleId,
       employeeId: widget.employeeId,
       scores: payloadScores,
       summaryComment: _summaryCommentController.text.trim(),
@@ -184,12 +173,12 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
               const SizedBox(height: 24),
 
               Text(
-                'Parameter Ratings & Feedback',
+                'Parameter Ratings',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
 
-              // 5 Parameter Evaluation Input Cards
+              // 5 Parameter Evaluation Input Cards (Score Ratings Only)
               ...AppConfig.fixedParameters.asMap().entries.map((entry) {
                 final index = entry.key + 1;
                 final param = entry.value;
@@ -199,7 +188,7 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
                 final currentScore = _scores[code] ?? 4;
 
                 return Card(
-                  margin: const EdgeInsets.only(bottom: 20),
+                  margin: const EdgeInsets.only(bottom: 16),
                   child: Padding(
                     padding: const EdgeInsets.all(18.0),
                     child: Column(
@@ -262,28 +251,12 @@ class _CreateEvaluationScreenState extends State<CreateEvaluationScreen> {
                             );
                           }),
                         ),
-                        const SizedBox(height: 16),
-
-                        // Comment Text Input
-                        TextFormField(
-                          controller: _commentControllers[code],
-                          maxLines: 2,
-                          decoration: const InputDecoration(
-                            labelText: 'Written Feedback Comment',
-                            hintText: 'Enter specific feedback for this parameter (min 5 chars)...',
-                          ),
-                          validator: (value) {
-                            if (value == null || value.trim().length < 5) {
-                              return 'Please write feedback (at least 5 characters).';
-                            }
-                            return null;
-                          },
-                        ),
                       ],
                     ),
                   ),
                 );
               }),
+              const SizedBox(height: 10),
 
               // Overall Summary Comment Input Card
               Card(

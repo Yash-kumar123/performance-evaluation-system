@@ -14,6 +14,8 @@ const validate = (req, res, next) => {
       message: err.msg
     }));
 
+    console.error('[VALIDATION ERROR DETAILS]:', JSON.stringify(formattedErrors, null, 2));
+
     return next(new AppError('Validation failed. Please check input parameters.', 400, formattedErrors));
   }
 

@@ -117,7 +117,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Action Buttons
+              // Top Primary Action Bar Buttons
               Row(
                 children: [
                   Expanded(
@@ -132,16 +132,16 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                     child: OutlinedButton.icon(
                       onPressed: () => context.go('/manager/submitted'),
                       icon: const Icon(Icons.task_alt_rounded, size: 18),
-                      label: const Text('Submitted'),
+                      label: const Text('Submitted Reviews'),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 28),
 
-              // Compliance & Metrics Summary Section
+              // Compliance & Metrics Summary Section Header
               Text(
-                'Monthly Evaluation Progress',
+                'Monthly Evaluation Progress (Click cards to view details)',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
@@ -159,7 +159,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                   onRetry: () => mgrProvider.fetchTeamStatus(),
                 )
               else ...[
-                // Metrics Grid Cards
+                // 4 Interactive Clickable Metric Analytics Cards Grid
                 Row(
                   children: [
                     Expanded(
@@ -169,6 +169,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         value: '${mgrProvider.totalReports}',
                         icon: Icons.groups_outlined,
                         color: AppTheme.primaryColor,
+                        onTap: () => context.go('/manager/team'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -179,6 +180,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         value: '${mgrProvider.completedCount}',
                         icon: Icons.check_circle_outline_rounded,
                         color: AppTheme.successColor,
+                        onTap: () => context.go('/manager/submitted'),
                       ),
                     ),
                   ],
@@ -193,6 +195,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         value: '${mgrProvider.pendingCount}',
                         icon: Icons.hourglass_empty_rounded,
                         color: AppTheme.warningColor,
+                        onTap: () => context.go('/manager/team?filter=PENDING'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -203,6 +206,7 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
                         value: '${mgrProvider.completionPercentage.toStringAsFixed(0)}%',
                         icon: Icons.pie_chart_outline_rounded,
                         color: AppTheme.secondaryColor,
+                        onTap: () => context.go('/manager/team'),
                       ),
                     ),
                   ],
@@ -281,29 +285,52 @@ class _ManagerDashboardScreenState extends State<ManagerDashboardScreen> {
     required String value,
     required IconData icon,
     required Color color,
+    required VoidCallback onTap,
   }) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13, fontWeight: FontWeight.w500),
-                ),
-                Icon(icon, color: color, size: 20),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
-            ),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(color: AppTheme.textSecondaryColor, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                  Icon(icon, color: color, size: 20),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: color),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        'View',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 10, color: color),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
